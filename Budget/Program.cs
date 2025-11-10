@@ -1,6 +1,9 @@
 ﻿using System.Text;
+using Budget;
 using LanguageExt;
+using LanguageExt.Traits;
 using static LanguageExt.Prelude;
+using Seq = LanguageExt.Seq;
 
 
 IO<Unit> log(string message) => IO.lift(() => Console.WriteLine(message));
@@ -16,31 +19,32 @@ IO<Classification> selectCategory(int result, Seq<Category> seq, LineItem lineIt
     throw new NotImplementedException();
 }
 
+// K<M, A> cond<M, A>(Seq<(K<M, bool> Pred, K<M, A> True)> seq, A Default)
+//     where M : Monad<M>
+//     => cond(seq, M.Pure(Default));
+
+//todo based version where everything is monad, overlaods wrap up in Pure as needed
+K<M, A> cond<M, A>(Seq<(bool Pred, K<M, A> True)> seq, A Default)
+    where M : Monad<M>
+    => seq.Rev().Fold(M.Pure(Default), (prev, nextIf) => iff(
+        nextIf.Pred,
+        nextIf.True,
+        prev
+    ));
 
 IO<Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1)
 {
     throw new NotImplementedException();
 }
 
-IO<Classification> classifyFromInput(string input, Seq<Category> categories, LineItem lineItem)
-{
-    if (string.IsNullOrWhiteSpace(input))
-    {
-        return log("Please enter a valid (non-empty) value").Bind(_ => classify(categories, lineItem));
-    }
-    
-    if (int.TryParse(input, out var index))
-    {
-        return selectCategory(index, categories, lineItem);
-    }
-
-    if (input.StartsWith('*'))
-    {
-        return applySubClassifications(input, categories, lineItem);
-    }
-
-    return IO<Classification>.Pure(new Categorized(new Category(input), lineItem));
-}
+IO<Classification> classifyFromInput(string input, Seq<Category> categories, LineItem lineItem) =>
+    cond([
+            (string.IsNullOrWhiteSpace(input), log("Please enter a valid (non-empty) value")
+                .Bind(_ => classify(categories, lineItem))),
+            (int.TryParse(input, out var index), selectCategory(index, categories, lineItem)),
+            (input.StartsWith('*'), applySubClassifications(input, categories, lineItem))
+        ], new Categorized(new Category(input), lineItem))
+        .As();
 
 string getMainPrompt(Seq<Category> categories, LineItem lineItem) =>
     string.Join(Environment.NewLine, $"Please classify {lineItem.Description}: {lineItem.Amount:N}"
@@ -51,6 +55,7 @@ IO<Classification> classify(Seq<Category> categories, LineItem lineItem) =>
     from input in readLine()
     from result in classifyFromInput(input, categories, lineItem)
     select result;
+
 //     
 // //
 // // var parsed = Csv.ParseFile("/home/michael/Downloads/Huntington_Delimited_Old_Account.csv");
@@ -212,7 +217,7 @@ public sealed record SubClassifications : Classification
                Option<SubClassifications>.None;
 }
 
-public sealed record LineItem(string Description, decimal Amount);
+public sealed record LineItem(string Description, decimal Amount, DateTime Date);
 
 // Overall idea: localhost/0.0.0.0 running server, "local first" app that tries to sync with "basic REST" (maybe 
 // some kind of tcp/udp check in a background service to avoiding messy polling), but phone is kind of main point of "input". Interesting!
