@@ -1,4 +1,5 @@
 using LanguageExt;
+using LanguageExt.Common;
 
 namespace Budget;
 
@@ -24,7 +25,8 @@ public record ClassificationsState(
 
 public interface IGetLines
 {
-    IO<Seq<LineItem>> GetLines();
+    //todo "Warning" type? Maybe too pendantic just go with this for now
+    WriterT<Error, IO, Seq<LineItem>> GetLines();
 }
 
 

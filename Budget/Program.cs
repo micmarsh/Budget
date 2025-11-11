@@ -56,21 +56,6 @@ IO<Classification> classify(Seq<Category> categories, LineItem lineItem) =>
     from result in classifyFromInput(input, categories, lineItem)
     select result;
 
-//     
-// //
-// // var parsed = Csv.ParseFile("/home/michael/Downloads/Huntington_Delimited_Old_Account.csv");
-// // var categories = Atom(new Seq<Category>());
-//
-// classify([new Category("Food"), new Category("Car")], new LineItem("THE STORE", 23.45M))
-//     .Bind(c => log(c.ToString()))
-//     .Run();
-
-//Console.WriteLine("Foo");
-
-
-
-// Might be nice own utility, "neglected" sort of "ecosystem library"?
-
 // Similarly nothing to do with budget at all, but generally useful for C#? Doesn't even need LanguageExt dep!
     // public static ArgumentException patternMatchError<Supertype>(object unmatchable, string? paramName = null) =>
     //     new ($"Unknown case type {unmatchable.GetType().Name} in" +
@@ -90,28 +75,7 @@ IO<Classification> classify(Seq<Category> categories, LineItem lineItem) =>
     //     return $" at {matchFrame.GetFileName()}:{matchFrame.GetFileLineNumber()}";
     // }
 
-// this class is more of a sketch, use function to think about what inputs are needed?
-// maybe just need (LineItem -> IO<Classification>), user prompt, categoryStore, and even 
-// whether or not user input is needed at all is then somehow encapsulated away? Maybe now
-// need to do real design and figuring out problem to solve
-public static class BusinessLogic
-{
-    public static IO<Classification> classify(CategoryStore categories, LineItem input) 
-        => throw new NotImplementedException();
-}
-
 public sealed record Category(string Value); // NonEmpty string, use those "domain NewType substitutes", for this?
-
-public interface CategoryStore
-{
-    public IO<Seq<Category>> Query(CategoryQuery query);
-    public IO<Unit> Save(Category category);
-}
-//todo maybe "module" methods that follow the same pattern as http: requires MonadIO and Readable<CategoryStore>?
-
-public abstract record CategoryQuery;
-public sealed record Search(string term) : CategoryQuery;
-
 
 public abstract record Classification(LineItem LineItem);
 
