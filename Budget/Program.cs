@@ -3,58 +3,53 @@ using Budget;
 using LanguageExt;
 using LanguageExt.Traits;
 using static LanguageExt.Prelude;
-using Seq = LanguageExt.Seq;
+using static Budget.Utilities;
+using Console = Budget.Console;
 
+Eff<IConsole, Unit> log(string message) => askE<IConsole>().Bind(c => c.WriteLine(message));
 
-IO<Unit> log(string message) => IO.lift(() => Console.WriteLine(message));
+Eff<IConsole, string> readLine() => askE<IConsole>().Bind(c => c.ReadLine());
 
-IO<string> readLine() => IO.lift(Console.ReadLine)
-    .Bind(s => s == null ? 
-        IO.fail<string>("Somehow read a null string from prompt") : 
-        IO.pure(s));
-
-
-IO<Classification> selectCategory(int result, Seq<Category> seq, LineItem lineItem1)
+//not excessive type because this needs to force re-select if index out of bounds
+Eff<IConsole, Classification> selectCategory(int result, Seq<Category> seq, LineItem lineItem1)
 {
     throw new NotImplementedException();
 }
 
-// K<M, A> cond<M, A>(Seq<(K<M, bool> Pred, K<M, A> True)> seq, A Default)
-//     where M : Monad<M>
-//     => cond(seq, M.Pure(Default));
 
-//todo based version where everything is monad, overlaods wrap up in Pure as needed
-K<M, A> cond<M, A>(Seq<(bool Pred, K<M, A> True)> seq, A Default)
-    where M : Monad<M>
-    => seq.Rev().Fold(M.Pure(Default), (prev, nextIf) => iff(
-        nextIf.Pred,
-        nextIf.True,
-        prev
-    ));
-
-IO<Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1)
+Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1)
 {
     throw new NotImplementedException();
 }
 
-IO<Classification> classifyFromInput(string input, Seq<Category> categories, LineItem lineItem) =>
+//todo needs to deal with annual and income in a special way??? Yes!
+Eff<IConsole, Classification> classifyFromInput(string input, Seq<Category> categories, LineItem lineItem) =>
     cond([
             (string.IsNullOrWhiteSpace(input), log("Please enter a valid (non-empty) value")
                 .Bind(_ => classify(categories, lineItem))),
+            //todo breaking here, problem with cond?
             (int.TryParse(input, out var index), selectCategory(index, categories, lineItem)),
             (input.StartsWith('*'), applySubClassifications(input, categories, lineItem))
         ], new Categorized(new Category(input), lineItem))
         .As();
 
 string getMainPrompt(Seq<Category> categories, LineItem lineItem) =>
-    string.Join(Environment.NewLine, $"Please classify {lineItem.Description}: {lineItem.Amount:N}"
+    string.Join(Environment.NewLine, $"{lineItem.Description}: {lineItem.Amount:N}"
         .Cons(categories.Map((c, i) => $"  {i + 1}) {c.Value}")));
 
-IO<Classification> classify(Seq<Category> categories, LineItem lineItem) =>
+Eff<IConsole, Classification> classify(Seq<Category> categories, LineItem lineItem) =>
     from _1 in log(getMainPrompt(categories, lineItem))
     from input in readLine()
     from result in classifyFromInput(input, categories, lineItem)
     select result;
+
+var cats = Seq(new Category("Almsgiving"), new Category("Food"), new Category("Cart"));
+
+var lineItems = Seq(new LineItem("Frank's POS Charge", 23.34M, DateTime.Now),
+    new LineItem("Progressive Insurance", 800M, DateTime.Now),
+    new LineItem("Stuff", 10, DateTime.Now));
+
+lineItems.TraverseM(l => classify(cats, l)).Run(new Console()).ThrowIfFail();
 
 // Similarly nothing to do with budget at all, but generally useful for C#? Doesn't even need LanguageExt dep!
     // public static ArgumentException patternMatchError<Supertype>(object unmatchable, string? paramName = null) =>
