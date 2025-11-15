@@ -26,7 +26,7 @@ static Eff<IConsole, Categorized> selectCategory(int result, Seq<Category> seq, 
         Pure(new Categorized(seq[result - 1], lineItem1));
 
 static Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1) =>
-    new Fail<Error>(new NotImplementedException());
+    new Fail<Error>(new NotImplementedException(nameof(applySubClassifications)));
 
 static Eff<IConsole, Classification> classifyIncome(string s, Seq<Category> seq, LineItem lineItem1)
 {

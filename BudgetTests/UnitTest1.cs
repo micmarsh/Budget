@@ -8,12 +8,57 @@ public class UnitTest1
     private readonly Seq<Category> Categories = Seq(
         new Category("Almsgiving"),
         new Category("Food"),
-        new Category("Cart"),
+        new Category("Car"),
         new Category("Work"));
 
     private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", 23.34M, DateTime.Now),
         new LineItem("Progressive Insurance", 800M, DateTime.Now),
         new LineItem("Stuff", 10, DateTime.Now));
+    
+    
+    [Fact]
+    public void classify_basicTest_NoCategoryAggregation()
+    {
+        var expectedOutput = Seq(
+@"Frank's POS Charge: $23.34
+  1) Almsgiving
+  2) Food
+  3) Cart
+  4) Work",
+// input: two blank spaces
+"Please enter a valid (non-empty) value",
+// select "Food"
+@"Progressive Insurance: $800.00
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work",
+// enter "* House 400"
+// enter "3 200"
+// enter "* Motorcycle 200" (excersing optional bullet points)"
+// todo will need a lot of error handling in subclasses
+@"Stuff: $10.00
+  1) Almsgiving
+  2) Food
+  3) Cart
+  4) Work"
+// enter "income Interest Payment"
+);
+
+        var console = new TestConsole([
+            "  ",
+            "2",
+            "* House 400",
+            "3 200",
+            "* Motorcycle 200",
+            "income Interset Payment"
+        ]);
+        
+        var _ = LineItems.TraverseM(lineItem => UserClassification.classify(Categories, lineItem))
+            .RunUnsafe(console);
+        
+        Assert.Equal(expectedOutput, console.Outputs);
+    }
     
     [Fact]
     public void classify_selectCategory_ShouldHandleBadInputs()
