@@ -11,10 +11,20 @@ Eff<IConsole, Unit> log(string message) => askE<IConsole>().Bind(c => c.WriteLin
 
 Eff<IConsole, string> readLine() => askE<IConsole>().Bind(c => c.ReadLine());
 
-//not excessive type because this needs to force re-select if index out of bounds
-Eff<IConsole, Categorized> selectCategory(int result, Seq<Category> seq, LineItem lineItem1) =>
-     new Fail<Error>(new NotImplementedException());
+Eff<IConsole, Categorized> reselectCategory(Seq<Category> seq, LineItem lineItem1) =>
+    from _1 in log($"Please select a number between 1 and {seq.Count}")
+    from selection in readLine()
+    from result in int.TryParse(selection, out var index)
+        ? selectCategory(index, seq, lineItem1)
+        : reselectCategory(seq, lineItem1)
+    select result;
 
+Eff<IConsole, Categorized> selectCategory(int result, Seq<Category> seq, LineItem lineItem1) =>
+    cond([
+            (result < 1, reselectCategory(seq, lineItem1)),
+            (result > seq.Count, reselectCategory(seq, lineItem1))
+        ], new Categorized(seq[result - 1], lineItem1))
+        .As();
 
 Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1) =>
     new Fail<Error>(new NotImplementedException());
