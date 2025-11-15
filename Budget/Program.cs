@@ -11,12 +11,12 @@ Eff<IConsole, Unit> log(string message) => askE<IConsole>().Bind(c => c.WriteLin
 
 Eff<IConsole, string> readLine() => askE<IConsole>().Bind(c => c.ReadLine());
 
-Eff<IConsole, Categorized> reselectCategory(Seq<Category> seq, LineItem lineItem1) =>
-    from _1 in log($"Please select a number between 1 and {seq.Count}")
+Eff<IConsole, Categorized> reselectCategory(Seq<Category> categories, LineItem lineItem1) =>
+    from _1 in log($"Please select a number between 1 and {categories.Count}")
     from selection in readLine()
     from result in int.TryParse(selection, out var index)
-        ? selectCategory(index, seq, lineItem1)
-        : reselectCategory(seq, lineItem1)
+        ? selectCategory(index, categories, lineItem1)
+        : reselectCategory(categories, lineItem1)
     select result;
 
 Eff<IConsole, Categorized> selectCategory(int result, Seq<Category> seq, LineItem lineItem1) =>
@@ -41,14 +41,19 @@ Eff<IConsole, Classification> classifyIncome(string s, Seq<Category> seq, LineIt
 }
 
 
-//todo needs to deal with annual and income in a special way??? Yes!
-// maybe frequency and income are related? Really frequency relates to anything
-// keep it "simple" for now? Maybe don't even need "Annual", just "Income", and frequency can come later?
+//todo just an overload once is in proper class (maybe soon)
+Eff<IConsole, Classification> selectCategoryStr(string input, Seq<Category> categories, LineItem lineItem) =>
+    parseInt(input)
+        .Match(index => selectCategory(index, categories, lineItem), 
+            () =>  reselectCategory(categories, lineItem))
+        .Map(c => (Classification)c)
+        .As();
+
 Eff<IConsole, Classification> classifyFromInput(string input, Seq<Category> categories, LineItem lineItem) =>
     cond([
             (string.IsNullOrWhiteSpace(input), log("Please enter a valid (non-empty) value")
                 .Bind(_ => classify(categories, lineItem))),
-            (int.TryParse(input, out var index), selectCategory(index, categories, lineItem).Map(c => (Classification)c)),
+            (parseInt(input).IsSome, selectCategoryStr(input, categories, lineItem)),
             (input.StartsWith('*'), applySubClassifications(input, categories, lineItem)),
             (input.ToLower().StartsWith("income"), classifyIncome(input, categories, lineItem))
         ], new Categorized(new Category(input.Trim()), lineItem))
