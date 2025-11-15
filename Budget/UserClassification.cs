@@ -21,11 +21,9 @@ static Eff<IConsole, Categorized> reselectCategory(Seq<Category> categories, Lin
     select result;
 
 static Eff<IConsole, Categorized> selectCategory(int result, Seq<Category> seq, LineItem lineItem1) =>
-    cond([
-            (result < 1, reselectCategory(seq, lineItem1)),
-            (result > seq.Count, reselectCategory(seq, lineItem1))
-        ], new Categorized(seq[result - 1], lineItem1))
-        .As();
+    result < 1 || result > seq.Count ? 
+        reselectCategory(seq, lineItem1) : 
+        Pure(new Categorized(seq[result - 1], lineItem1));
 
 static Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1) =>
     new Fail<Error>(new NotImplementedException());
