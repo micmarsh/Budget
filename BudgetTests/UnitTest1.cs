@@ -25,7 +25,11 @@ public class UnitTest1
         var result = UserClassification.classify(Categories, LineItems[0])
             .Map(c => (Categorized) c)
             .RunUnsafe(console);
+
+        var expectedOutput = 
+            toSeq(Enumerable.Repeat($"Please select a number between 1 and {Categories.Count}", console.InitialInputs.Count - 1));
         
         Assert.Equal("Food", result.Category.Value);
+        Assert.Equal(expectedOutput, console.Outputs.Tail); // skip initial prompt
     }
 }
