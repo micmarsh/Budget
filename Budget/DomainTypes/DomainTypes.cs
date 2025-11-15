@@ -8,7 +8,6 @@ public abstract record Classification(LineItem LineItem);
 
 public sealed record Categorized(Category Category, LineItem LineItem) : Classification(LineItem);
 public sealed record Income(Category Category, LineItem LineItem) : Classification(LineItem);
-public sealed record Annual(Category Category, LineItem LineItem) : Classification(LineItem);
 
 public sealed record SubClassifications : Classification
 {

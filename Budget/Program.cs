@@ -12,12 +12,23 @@ Eff<IConsole, Unit> log(string message) => askE<IConsole>().Bind(c => c.WriteLin
 Eff<IConsole, string> readLine() => askE<IConsole>().Bind(c => c.ReadLine());
 
 //not excessive type because this needs to force re-select if index out of bounds
-Eff<IConsole, Classification> selectCategory(int result, Seq<Category> seq, LineItem lineItem1) =>
+Eff<IConsole, Categorized> selectCategory(int result, Seq<Category> seq, LineItem lineItem1) =>
      new Fail<Error>(new NotImplementedException());
 
 
 Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1) =>
     new Fail<Error>(new NotImplementedException());
+
+Eff<IConsole, Classification> classifyIncome(string s, Seq<Category> seq, LineItem lineItem1)
+{
+    var category = s.Replace("income", "").Trim();
+    if (int.TryParse(category, out var index))
+    {
+        return selectCategory(index, seq, lineItem1)
+            .Map(cat => (Classification) new Income(cat.Category, cat.LineItem));
+    }
+    return Pure((Classification) new Income(new Category(category), lineItem1));
+}
 
 
 //todo needs to deal with annual and income in a special way??? Yes!
@@ -27,9 +38,10 @@ Eff<IConsole, Classification> classifyFromInput(string input, Seq<Category> cate
     cond([
             (string.IsNullOrWhiteSpace(input), log("Please enter a valid (non-empty) value")
                 .Bind(_ => classify(categories, lineItem))),
-            (int.TryParse(input, out var index), selectCategory(index, categories, lineItem)),
-            (input.StartsWith('*'), applySubClassifications(input, categories, lineItem))
-        ], new Categorized(new Category(input), lineItem))
+            (int.TryParse(input, out var index), selectCategory(index, categories, lineItem).Map(c => (Classification)c)),
+            (input.StartsWith('*'), applySubClassifications(input, categories, lineItem)),
+            (input.ToLower().StartsWith("income"), classifyIncome(input, categories, lineItem))
+        ], new Categorized(new Category(input.Trim()), lineItem))
         .As();
 
 string getMainPrompt(Seq<Category> categories, LineItem lineItem) =>
