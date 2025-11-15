@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
@@ -20,6 +20,16 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Budget\Budget.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="LanguageExt.Core">
+        <HintPath>..\..\..\.nuget\packages\languageext.core\5.0.0-beta-54\lib\net8.0\LanguageExt.Core.dll</HintPath>
+      </Reference>
     </ItemGroup>
 
 </Project>
