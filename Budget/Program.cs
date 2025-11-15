@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Budget;
 using LanguageExt;
+using LanguageExt.Common;
 using LanguageExt.Traits;
 using static LanguageExt.Prelude;
 using static Budget.Utilities;
@@ -11,23 +12,21 @@ Eff<IConsole, Unit> log(string message) => askE<IConsole>().Bind(c => c.WriteLin
 Eff<IConsole, string> readLine() => askE<IConsole>().Bind(c => c.ReadLine());
 
 //not excessive type because this needs to force re-select if index out of bounds
-Eff<IConsole, Classification> selectCategory(int result, Seq<Category> seq, LineItem lineItem1)
-{
-    throw new NotImplementedException();
-}
+Eff<IConsole, Classification> selectCategory(int result, Seq<Category> seq, LineItem lineItem1) =>
+     new Fail<Error>(new NotImplementedException());
 
 
-Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1)
-{
-    throw new NotImplementedException();
-}
+Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1) =>
+    new Fail<Error>(new NotImplementedException());
+
 
 //todo needs to deal with annual and income in a special way??? Yes!
+// maybe frequency and income are related? Really frequency relates to anything
+// keep it "simple" for now? Maybe don't even need "Annual", just "Income", and frequency can come later?
 Eff<IConsole, Classification> classifyFromInput(string input, Seq<Category> categories, LineItem lineItem) =>
     cond([
             (string.IsNullOrWhiteSpace(input), log("Please enter a valid (non-empty) value")
                 .Bind(_ => classify(categories, lineItem))),
-            //todo breaking here, problem with cond?
             (int.TryParse(input, out var index), selectCategory(index, categories, lineItem)),
             (input.StartsWith('*'), applySubClassifications(input, categories, lineItem))
         ], new Categorized(new Category(input), lineItem))
@@ -49,7 +48,9 @@ var lineItems = Seq(new LineItem("Frank's POS Charge", 23.34M, DateTime.Now),
     new LineItem("Progressive Insurance", 800M, DateTime.Now),
     new LineItem("Stuff", 10, DateTime.Now));
 
-lineItems.TraverseM(l => classify(cats, l)).Run(new Console()).ThrowIfFail();
+lineItems.TraverseM(l => classify(cats, l))
+    .Run(new Console())
+    .ThrowIfFail();
 
 // Similarly nothing to do with budget at all, but generally useful for C#? Doesn't even need LanguageExt dep!
     // public static ArgumentException patternMatchError<Supertype>(object unmatchable, string? paramName = null) =>
@@ -69,30 +70,6 @@ lineItems.TraverseM(l => classify(cats, l)).Run(new Console()).ThrowIfFail();
     //
     //     return $" at {matchFrame.GetFileName()}:{matchFrame.GetFileLineNumber()}";
     // }
-
-public sealed record Category(string Value); // NonEmpty string, use those "domain NewType substitutes", for this?
-
-public abstract record Classification(LineItem LineItem);
-
-public sealed record Categorized(Category Category, LineItem LineItem) : Classification(LineItem);
-
-public sealed record SubClassifications : Classification
-{
-    // prevent recursive craziness, "Single" and "Multiple" subtypes are now clearly distinct
-    public Seq<Categorized> Children { get; }
-
-    private SubClassifications(Seq<Categorized> children, LineItem lineItem) : base(lineItem)
-    {
-        Children = children;
-    }
-
-    public static Option<SubClassifications> New(Seq<Categorized> children, LineItem lineItem)
-        => lineItem.Amount == children.Map(x => x.LineItem.Amount).Sum(x => x) ?
-               new SubClassifications(children, lineItem) :
-               Option<SubClassifications>.None;
-}
-
-public sealed record LineItem(string Description, decimal Amount, DateTime Date);
 
 // Overall idea: localhost/0.0.0.0 running server, "local first" app that tries to sync with "basic REST" (maybe 
 // some kind of tcp/udp check in a background service to avoiding messy polling), but phone is kind of main point of "input". Interesting!
