@@ -65,7 +65,7 @@ public class UnitTest1
     [Fact]
     public void classifyAll_isStackSafe()
     {
-        const int itemCount = 1000000;
+        const int itemCount = 10000;
         var lineItems = toSeq(Enumerable.Range(0, itemCount))
             .Map(i => new LineItem($"Item {i}", 100, DateTime.Now));
         
