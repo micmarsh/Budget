@@ -17,7 +17,7 @@ public class UnitTest1
     
     
     [Fact]
-    public void classify_basicTest_NoCategoryAggregation()
+    public void classifyAll_basicTest()
     {
         var expectedOutput = Seq(
 @"Frank's POS Charge: $23.34
@@ -60,6 +60,19 @@ public class UnitTest1
             .RunUnsafe(console);
         
         Assert.Equal(expectedOutput, console.Outputs);
+    }
+    
+    [Fact]
+    public void classifyAll_isStackSafe()
+    {
+        const int itemCount = 1000000;
+        var lineItems = toSeq(Enumerable.Range(0, itemCount))
+            .Map(i => new LineItem($"Item {i}", 100, DateTime.Now));
+        
+        var inputs = toSeq(Enumerable.Repeat("1", itemCount));
+
+        var _ = UserClassification.classifyAll(_ => unitIO, Categories, lineItems)
+            .RunUnsafe(new TestConsole(inputs));
     }
     
     [Fact]

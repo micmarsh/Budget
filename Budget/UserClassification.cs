@@ -78,9 +78,6 @@ public static Eff<IConsole, Unit> classifyAll(Func<Classification, IO<Unit>> sto
         .IgnoreF()
         .As();
 
-private static Seq<Category> addNewCategories(Classification @class, Seq<Category> cats)
-{
-    throw new NotImplementedException();
-}
+private static Seq<Category> addNewCategories(Classification @class, Seq<Category> cats) => cats;
 
 }
