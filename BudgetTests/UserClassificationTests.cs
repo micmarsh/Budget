@@ -27,7 +27,7 @@ public class UnitTest1
   4) Work",
 // input: two blank spaces
 "Please enter a valid (non-empty) value",
-// select "Food"
+// select 2/"Food"
 @"Progressive Insurance: $800.00
   1) Almsgiving
   2) Food
@@ -41,7 +41,9 @@ public class UnitTest1
   1) Almsgiving
   2) Food
   3) Cart
-  4) Work"
+  4) Work
+  5) House
+  6) Motorcycle"
 // enter "income Interest Payment"
 );
 
@@ -51,10 +53,10 @@ public class UnitTest1
             "* House 400",
             "3 200",
             "* Motorcycle 200",
-            "income Interset Payment"
+            "income Interest Payment"
         ]);
         
-        var _ = LineItems.TraverseM(lineItem => UserClassification.classify(Categories, lineItem))
+        var _ = UserClassification.classifyAll(_ => unitIO, Categories, LineItems)
             .RunUnsafe(console);
         
         Assert.Equal(expectedOutput, console.Outputs);

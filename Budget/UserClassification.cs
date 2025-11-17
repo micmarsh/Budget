@@ -70,8 +70,8 @@ public static Eff<IConsole, Classification> classify(Seq<Category> categories, L
 
 public static Eff<IConsole, Unit> classifyAll(Func<Classification, IO<Unit>> store, 
     Seq<Category> categories,
-    Seq<LineItem> lineItem) =>
-    lineItem.FoldM(categories, (cats, lineItem) =>
+    Seq<LineItem> lineItems) =>
+    lineItems.FoldM(categories, (cats, lineItem) =>
         from @class in classify(cats, lineItem)
         from _ in store(@class)
         select addNewCategories(@class, cats))
