@@ -67,4 +67,20 @@ public static Eff<IConsole, Classification> classify(Seq<Category> categories, L
     from input in readLine()
     from result in classifyFromInput(input, categories, lineItem)
     select result;
+
+public static Eff<IConsole, Unit> classifyAll(Func<Classification, IO<Unit>> store, 
+    Seq<Category> categories,
+    Seq<LineItem> lineItem) =>
+    lineItem.FoldM(categories, (cats, lineItem) =>
+        from @class in classify(cats, lineItem)
+        from _ in store(@class)
+        select addNewCategories(@class, cats))
+        .IgnoreF()
+        .As();
+
+private static Seq<Category> addNewCategories(Classification @class, Seq<Category> cats)
+{
+    throw new NotImplementedException();
+}
+
 }

@@ -17,6 +17,8 @@ public static class Utilities
         new (new ReaderT<Env2, IO, A>(env2 => eff.effect.Run(f(env2)) ));
     
     //todo based version where everything is monad, overlaods wrap up in Pure as needed, then can go in main too!
+    //tricky problems found with not everything being lazy (attempting to "guard" Trues with "bad" Try methods, for example)
+    //   Another example: Doesn't work to "guard" an index lookup (such as in Default value), for obvious reasons if you think about it
     public static K<M, A> cond<M, A>(Seq<(bool Pred, K<M, A> True)> seq, A Default)
         where M : Monad<M>
         => seq.Rev().Fold(M.Pure(Default), (prev, nextIf) => iff(
@@ -24,6 +26,25 @@ public static class Utilities
             nextIf.True,
             prev
         ));
+    
+    // Similarly nothing to do with budget at all, but generally useful for C#? Doesn't even need LanguageExt dep!
+    public static ArgumentException patternMatchError<Supertype>(object unmatchable, string? paramName = null) =>
+        new ($"Unknown case type {unmatchable.GetType().Name} in" +
+             $" pattern-match for {typeof(Supertype).Name}" +
+             fileNameAndLine(), paramName);
+    
+    private static string fileNameAndLine()
+    {
+        var stackTrace = new System.Diagnostics.StackTrace();
+        // 0 is fileNameAndLine frame, 1 is patternMatchError, 2 is where this is used?
+        var matchFrame = stackTrace.GetFrame(2);
+        if (matchFrame == null || matchFrame.GetFileName() == null)
+        {
+            return string.Empty;
+        }
+    
+        return $" at {matchFrame.GetFileName()}:{matchFrame.GetFileLineNumber()}";
+    }
 }
 
 public static class Csv
