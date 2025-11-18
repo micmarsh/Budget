@@ -23,7 +23,7 @@ public class UnitTest1
 @"Frank's POS Charge: $23.34
   1) Almsgiving
   2) Food
-  3) Cart
+  3) Car
   4) Work",
 // input: two blank spaces
 "Please enter a valid (non-empty) value",
@@ -40,7 +40,7 @@ public class UnitTest1
 @"Stuff: $10.00
   1) Almsgiving
   2) Food
-  3) Cart
+  3) Car
   4) Work
   5) House
   6) Motorcycle"
@@ -65,7 +65,7 @@ public class UnitTest1
     [Fact]
     public void classifyAll_isStackSafe()
     {
-        const int itemCount = 10000;
+        const int itemCount = 100000;
         var lineItems = toSeq(Enumerable.Range(0, itemCount))
             .Map(i => new LineItem($"Item {i}", 100, DateTime.Now));
         
@@ -73,6 +73,38 @@ public class UnitTest1
 
         var _ = UserClassification.classifyAll(_ => unitIO, Categories, lineItems)
             .RunUnsafe(new TestConsole(inputs));
+    }
+
+    [Fact]
+    public void classify_applySubClassifications_ShouldEnforceTotals()
+    {
+        var expectedOutput = Seq(
+            @"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work",
+            // enter "* 2 11.22"
+            // enter "* Outdoors 10"
+            // enter "Other 20"
+"Last entry exceeded total by $17.90 (only $2.10 left), please try again",
+            // enter "* Other 10"
+"Last entry exceeded total by $7.90 (only $2.10 left), please try again"
+            // enter "Other 2.1"
+            );
+
+        var console = new TestConsole([
+            "* 2 11.22",
+            "* Outdoors 10",
+            "Other 20",
+            "* Other 10",
+            "Other 2.1"
+        ]);
+
+        var result = UserClassification.classify(Categories, LineItems[0])
+            .RunUnsafe(console);
+        
+        Assert.Equal(expectedOutput, console.Outputs);
     }
     
     [Fact]
