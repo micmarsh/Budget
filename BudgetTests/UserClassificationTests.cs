@@ -1,4 +1,5 @@
 using Budget;
+using FluentAssertions;
 
 namespace BudgetTests;
 
@@ -11,7 +12,7 @@ public class UnitTest1
         new Category("Car"),
         new Category("Work"));
 
-    private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", 23.34M, DateTime.Now),
+    private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", 23.32M, DateTime.Now),
         new LineItem("Progressive Insurance", 800M, DateTime.Now),
         new LineItem("Stuff", 10, DateTime.Now));
     
@@ -20,7 +21,7 @@ public class UnitTest1
     public void classifyAll_basicTest()
     {
         var expectedOutput = Seq(
-@"Frank's POS Charge: $23.34
+@"Frank's POS Charge: $23.32
   1) Almsgiving
   2) Food
   3) Car
@@ -60,8 +61,8 @@ public class UnitTest1
         
         var _ = UserClassification.classifyAll(_ => unitIO, Categories, LineItems)
             .RunUnsafe(console);
-        
-        Assert.Equal(expectedOutput, console.Outputs);
+
+        console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
     }
     
     [Fact]
@@ -175,9 +176,9 @@ public class UnitTest1
         var result = UserClassification.classify(Categories, LineItems[0])
             .Map(c => (Categorized) c)
             .RunUnsafe(console);
-        
-        Assert.Equal("Other", result.Category.Value);
-        Assert.Equal(expectedOutput, console.Outputs);
+
+        result.Category.Value.Should().Be("Other");
+        console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
     }
     
     
