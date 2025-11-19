@@ -3,7 +3,7 @@ using LanguageExt.Common;
 
 namespace Budget;
 
-public record Runtime(IGetLines GetLines, IStorage Storage, IConsole Console);
+public record Runtime(IFileReads FileReads, IStorage Storage, IConsole Console);
 
 public interface IConsole
 {
@@ -23,10 +23,9 @@ public record ClassificationsState(
     Seq<Category> Categories,
     Seq<Classification> OnDate);
 
-public interface IGetLines
+public interface IFileReads
 {
-    //todo "Warning" type? Maybe too pendantic just go with this for now
-    WriterT<Error, IO, Seq<LineItem>> GetLines();
+    IO<string> GetFileText(string filePath);
 }
 
 
