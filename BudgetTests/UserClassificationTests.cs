@@ -231,7 +231,12 @@ public class UserClassificationTests
             // "income 6"
             $"Please select a number between 1 and {Categories.Count}",
             // "cancel"
-            "Previous in-progress classification cancelled"
+            "Previous in-progress classification cancelled",
+            @"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work"
             //"Other"
         );
         
