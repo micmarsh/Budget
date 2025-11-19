@@ -16,11 +16,14 @@ public static class ConsoleClassifier
         
         select unit;
 
+    // todo re-think this, maybe can just pass in "info" at least? Probably pretty straightforward?
+    // maybe this can just be generic applicative, lift into Eff in caller?
     public static K<M, (Seq<Error> Errors, Seq<LineItem> lineItems)> parseCsvLines<M>(CsvLines lines)
         where M : Monad<M>, Readable<M, CsvInfo>
         => lines.Lines.Map(line => line switch
         {
-            ValidCsvLine validCsvLine => throw new NotImplementedException(),
+            ValidCsvLine(var fields, _) => 
+                (fields.Find()),
             LongCsvLine longCsvLine => throw new NotImplementedException(),
             ShortCsvLine shortCsvLine => throw new NotImplementedException(),
             _ => throw patternMatchError(line)
