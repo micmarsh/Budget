@@ -72,7 +72,22 @@ static Eff<IConsole, Classification> applySubClassifications(string s, Seq<Categ
 
 private static Eff<IConsole, Categorized> getSubCategorized(string s, Seq<Category> seq, LineItem lineItem)
 {
-    throw new NotImplementedException();
+    var parts = toSeq(s.Replace("*", "").Trim().Split(" ").Select(s1=> s1.Trim()));
+    var partsTuple =
+        from cat in parts.At(0)
+        from amount in parts.At(1).Bind(parseDecimal)
+        select (CategoryString: cat, Amount: amount);
+    return partsTuple.Match(
+        tuple => parseInt(tuple.CategoryString)
+            .Match(selection => selectCategory(selection, seq, lineItem),
+                () => Pure(new Categorized(new Category(tuple.CategoryString), lineItem with { Amount = tuple.Amount }))),// needing a whole LineItem here might be excesive, need custom "SubCategorized"!
+        () => 
+            from _1 in log($"Incorrectly formatted subcategory '{s}', please try again")
+            from input in readLine()
+            from _2 in guardNotCancelled(input) // didn't anticipate this!
+            from result in getSubCategorized(input, seq, lineItem)
+            select result
+        );
 }
 
 
