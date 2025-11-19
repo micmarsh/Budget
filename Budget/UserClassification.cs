@@ -138,13 +138,21 @@ public static Eff<IConsole, Classification> classify(Seq<Category> categories, L
 public static Eff<IConsole, Unit> classifyAll(Func<Classification, IO<Unit>> store, 
     Seq<Category> categories,
     Seq<LineItem> lineItems) =>
-    lineItems.FoldM(categories, (cats, lineItem) =>
+    // Need "FoldBack" in order to stack actions in correct order? That makes sense
+    lineItems.FoldBackM(categories, (cats, lineItem) =>
         from @class in classify(cats, lineItem)
         from _ in store(@class)
         select addNewCategories(@class, cats))
         .IgnoreF()
         .As();
 
-private static Seq<Category> addNewCategories(Classification @class, Seq<Category> cats) => cats;
+private static Seq<Category> addNewCategories(Classification @class, Seq<Category> cats) => 
+    @class switch
+    {
+        Categorized categorized => cats.Add(categorized.Category).Distinct(),
+        Income income => cats.Add(income.Category).Distinct(),
+        SubClassifications subs => cats.Concat(subs.Children.Map(c => c.Category)).Distinct(),
+        _ => throw patternMatchError(@class)
+    };
 
 }

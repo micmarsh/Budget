@@ -28,6 +28,11 @@ public class UnitTest1
   4) Work",
 // input: two blank spaces
 "Please enter a valid (non-empty) value",
+@"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work",
 // select 2/"Food"
 @"Progressive Insurance: $800.00
   1) Almsgiving
@@ -38,8 +43,7 @@ public class UnitTest1
 "$400.00 remaining to classify",
 // enter "3 200"
 "$200.00 remaining to classify",
-// enter "* Motorcycle 200" (excersing optional bullet points)"
-// todo will need a lot of error handling in subclasses
+// enter "* Motorcycle 200" (exercising optional bullet points)"
 @"Stuff: $10.00
   1) Almsgiving
   2) Food

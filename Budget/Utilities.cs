@@ -28,7 +28,7 @@ public static class Utilities
         ));
     
     // Similarly nothing to do with budget at all, but generally useful for C#? Doesn't even need LanguageExt dep!
-    public static ArgumentException patternMatchError<Supertype>(object unmatchable, string? paramName = null) =>
+    public static ArgumentException patternMatchError<Supertype>(Supertype unmatchable, string? paramName = null) =>
         new ($"Unknown case type {unmatchable.GetType().Name} in" +
              $" pattern-match for {typeof(Supertype).Name}" +
              fileNameAndLine(), paramName);
