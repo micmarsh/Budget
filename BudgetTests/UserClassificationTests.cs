@@ -3,7 +3,7 @@ using FluentAssertions;
 
 namespace BudgetTests;
 
-public class UnitTest1
+public class UserClassificationTests
 {
 
     private readonly Seq<Category> Categories = Seq(
