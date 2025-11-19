@@ -62,6 +62,7 @@ static Eff<IConsole, Classification> classifyFromInput(string input, Seq<Categor
             (parseInt(input).IsSome, selectCategoryStr(input, categories, lineItem)),
             (input.StartsWith('*'), applySubClassifications(input, categories, lineItem)),
             (input.ToLower().StartsWith("income"), classifyIncome(input, categories, lineItem))
+            // "cancel" is also noteworthy syntax, but not/shouldn't be checked for here
         ], new Categorized(new Category(input.Trim()), lineItem))
         .Catch(StateCancelledCode, _ => log("Previous in-progress classification cancelled")
             .Bind(_ => classify(categories, lineItem)))

@@ -109,7 +109,7 @@ public class UnitTest1
         var result = UserClassification.classify(Categories, LineItems[0])
             .RunUnsafe(console);
         
-        Assert.Equal(expectedOutput, console.Outputs);
+        console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
     }
     
     [Fact]
@@ -247,7 +247,7 @@ public class UnitTest1
             .RunUnsafe(console);
         
         Assert.Equal("Other", result.Category.Value);
-        Assert.Equal(expectedOutput, console.Outputs);
+        console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
     }
     
     [Fact]
