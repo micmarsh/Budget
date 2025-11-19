@@ -101,7 +101,7 @@ public class UnitTest1
         var console = new TestConsole([
             "* 2 11.22",
             "* Outdoors 10",
-            "Other 20",
+            "Other 20", 
             "* Other 10",
             "Other 2.1"
         ]);

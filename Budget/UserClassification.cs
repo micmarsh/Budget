@@ -79,7 +79,7 @@ private static Eff<IConsole, Categorized> getSubCategorized(string s, Seq<Catego
         select (CategoryString: cat, Amount: amount);
     return partsTuple.Match(
         tuple => parseInt(tuple.CategoryString)
-            .Match(selection => selectCategory(selection, seq, lineItem),
+            .Match(selection => selectCategory(selection, seq, lineItem with { Amount = tuple.Amount }),
                 () => Pure(new Categorized(new Category(tuple.CategoryString), lineItem with { Amount = tuple.Amount }))),// needing a whole LineItem here might be excesive, need custom "SubCategorized"!
         () => 
             from _1 in log($"Incorrectly formatted subcategory '{s}', please try again")
