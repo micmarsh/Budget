@@ -119,8 +119,8 @@ static Eff<IConsole, Classification> classifyFromInput(string input, Seq<Categor
             (string.IsNullOrWhiteSpace(input), retry("Please enter a valid (non-empty) value", categories, lineItem)),
             (parseInt(input).IsSome, selectCategoryStr(input, categories, lineItem)),
             (input.StartsWith('*'), applySubClassifications(input, categories, lineItem)),
-            (input.ToLower().StartsWith("income"), classifyIncome(input, categories, lineItem))
-            // "cancel" is also noteworthy syntax, but not/shouldn't be checked for here
+            (input.ToLower().StartsWith("income"), classifyIncome(input, categories, lineItem)),
+            (input.Equals("cancel"), retry("Nothing to cancel", categories, lineItem))
         ], new Categorized(new Category(input.Trim()), lineItem))
         .Catch(StateCancelledCode, _ => retry("Previous in-progress classification cancelled", categories, lineItem))
         .As();

@@ -107,6 +107,7 @@ public class UnitTest1
         ]);
 
         var result = UserClassification.classify(Categories, LineItems[0])
+            .Map(c => (SubClassifications)c)
             .RunUnsafe(console);
         
         console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
