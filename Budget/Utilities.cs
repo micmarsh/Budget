@@ -21,7 +21,11 @@ public static class Utilities
     //   Another example: Doesn't work to "guard" an index lookup (such as in Default value), for obvious reasons if you think about it
     public static K<M, A> cond<M, A>(Seq<(bool Pred, K<M, A> True)> seq, A Default)
         where M : Monad<M>
-        => seq.Rev().Fold(M.Pure(Default), (prev, nextIf) => iff(
+        => cond(seq, M.Pure(Default));
+    
+    public static K<M, A> cond<M, A>(Seq<(bool Pred, K<M, A> True)> seq, K<M, A> Default)
+        where M : Monad<M>
+        => seq.Rev().Fold(Default, (prev, nextIf) => iff(
             nextIf.Pred,
             nextIf.True,
             prev

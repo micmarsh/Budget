@@ -9,34 +9,38 @@ namespace Budget;
 public static class UserClassification
 {
     
-static Eff<IConsole, Unit> log(string message) => askE<IConsole>().Bind(c => c.WriteLine(message));
+static Eff<ClassifyRT, Unit> log(string message) => askE<ClassifyRT>().Bind(c => c.Console.WriteLine(message));
 
-static Eff<IConsole, string> readLine() => askE<IConsole>().Bind(c => c.ReadLine());
+static Eff<ClassifyRT, string> readLine() => askE<ClassifyRT>().Bind(c => c.Console.ReadLine());
 
 private const int StateCancelledCode = 345;
 
-static Eff<IConsole, Unit> guardNotCancelled(string input) =>
+static Eff<ClassifyRT, Unit> guardNotCancelled(string input) =>
     input.StartsWith("cancel") ? Fail(Error.New(StateCancelledCode, "state cancelled")) : Pure(unit);
 
-static Eff<IConsole, Categorized> reselectCategory(Seq<Category> categories, LineItem lineItem1) =>
-    from _1 in log($"Please select a number between 1 and {categories.Count}")
+static Eff<ClassifyRT, Categorized> reselectCategory =>
+    from rt in askE<ClassifyRT>()
+    from _1 in log($"Please select a number between 1 and {rt.Categories.Count}")
     from selection in readLine()
     from _2 in guardNotCancelled(selection)
     from result in int.TryParse(selection, out var index)
-        ? selectCategory(index, categories, lineItem1)
-        : reselectCategory(categories, lineItem1)
+        ? selectCategory(index)
+        : reselectCategory
     select result;
 
-static Eff<IConsole, Categorized> selectCategory(int result, Seq<Category> seq, LineItem lineItem1) =>
-    result < 1 || result > seq.Count ? 
-        reselectCategory(seq, lineItem1) : 
-        Pure(new Categorized(seq[result - 1], lineItem1));
+static Eff<ClassifyRT, Categorized> selectCategory(int index) =>
+    from rt in askE<ClassifyRT>()
+    let seq = rt.Categories
+    let lineItem = rt.LineItem
+    from result in index< 1 || index > seq.Count ? 
+        reselectCategory : 
+        Pure(new Categorized(seq[index - 1], lineItem))
+    select result;
 
 
-static Eff<IConsole, SubClassifications> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem,
-    Seq<Categorized> soFar) =>
+static Eff<ClassifyRT, SubClassifications> applySubClassifications(string s, Seq<Categorized> soFar) =>
     from _1 in guardNotCancelled(s)
-    from categorized in getSubCategorized(s, seq, lineItem)
+    from categorized in getSubCategorized(s)
     let all = soFar.Add(categorized)
     from result in subclassifyBasedOnTotals(seq, lineItem, all)
     select result;
@@ -91,48 +95,49 @@ private static Eff<IConsole, Categorized> getSubCategorized(string s, Seq<Catego
 }
 
 
-static Eff<IConsole, Classification> classifyIncome(string s, Seq<Category> seq, LineItem lineItem1)
+static Eff<ClassifyRT, Classification> classifyIncome(string s)
 {
     var category = s.Replace("income", "").Trim();
     if (int.TryParse(category, out var index))
     {
-        return selectCategory(index, seq, lineItem1)
+        return selectCategory(index)
             .Map(cat => (Classification) new Income(cat.Category, cat.LineItem));
     }
-    return Pure((Classification) new Income(new Category(category), lineItem1));
+    return askE<ClassifyRT>().Map(rt => (Classification) new Income(new Category(category), rt.LineItem));
 }
 
 
 //todo just an overload once is in proper class (maybe soon)
-static Eff<IConsole, Classification> selectCategoryStr(string input, Seq<Category> categories, LineItem lineItem) =>
+static Eff<ClassifyRT, Classification> selectCategoryStr(string input) =>
     parseInt(input)
-        .Match(index => selectCategory(index, categories, lineItem), 
-            () =>  reselectCategory(categories, lineItem))
+        .Match(selectCategory, () =>  reselectCategory)
         .Map(c => (Classification)c)
         .As();
 
-static Eff<IConsole, Classification> retry(string message, Seq<Category> categories, LineItem lineItem) =>
-    log(message).Bind(_ => classify(categories, lineItem));
+static Eff<ClassifyRT, Classification> retry(string message) => log(message).Bind(_ => classify);
 
-static Eff<IConsole, Classification> classifyFromInput(string input, Seq<Category> categories, LineItem lineItem) =>
+static Eff<ClassifyRT, Classification> classifyFromInput(string input) =>
     cond([
-            (string.IsNullOrWhiteSpace(input), retry("Please enter a valid (non-empty) value", categories, lineItem)),
-            (parseInt(input).IsSome, selectCategoryStr(input, categories, lineItem)),
+            (string.IsNullOrWhiteSpace(input), retry("Please enter a valid (non-empty) value")),
+            (parseInt(input).IsSome, selectCategoryStr(input)),
             (input.StartsWith('*'), applySubClassifications(input, categories, lineItem)),
-            (input.ToLower().StartsWith("income"), classifyIncome(input, categories, lineItem)),
-            (input.Equals("cancel"), retry("Nothing to cancel", categories, lineItem))
-        ], new Categorized(new Category(input.Trim()), lineItem))
-        .Catch(StateCancelledCode, _ => retry("Previous in-progress classification cancelled", categories, lineItem))
+            (input.ToLower().StartsWith("income"), classifyIncome(input)),
+            (input.Equals("cancel"), retry("Nothing to cancel"))
+        ], askE<ClassifyRT>().Map(rt => (Classification) new Categorized(new Category(input.Trim()), rt.LineItem)))
+        .Catch(StateCancelledCode, _ => retry("Previous in-progress classification cancelled"))
         .As();
 
 static string getMainPrompt(Seq<Category> categories, LineItem lineItem) =>
     string.Join(Environment.NewLine, $"{lineItem.Description}: {lineItem.Amount:C}"
         .Cons(categories.Map((c, i) => $"  {i + 1}) {c.Value}")));
 
-public static Eff<IConsole, Classification> classify(Seq<Category> categories, LineItem lineItem) =>
-    from _1 in log(getMainPrompt(categories, lineItem))
+public sealed record ClassifyRT(IConsole Console, Seq<Category> Categories, LineItem LineItem);
+
+public static Eff<ClassifyRT, Classification> classify =>
+    from rt in askE<ClassifyRT>()
+    from _1 in log(getMainPrompt(rt.Categories, rt.LineItem))
     from input in readLine()
-    from result in classifyFromInput(input, categories, lineItem)
+    from result in classifyFromInput(input)
     select result;
 
 public static Eff<IConsole, Unit> classifyAll(Func<Classification, IO<Unit>> store, 
@@ -140,7 +145,7 @@ public static Eff<IConsole, Unit> classifyAll(Func<Classification, IO<Unit>> sto
     Seq<LineItem> lineItems) =>
     // Need "FoldBack" in order to stack actions in correct order? That makes sense
     lineItems.FoldBackM(categories, (cats, lineItem) =>
-        from @class in classify(cats, lineItem)
+        from @class in classify.CoMap((IConsole c) => new ClassifyRT(c, cats, lineItem))
         from _ in store(@class)
         select addNewCategories(@class, cats))
         .IgnoreF()

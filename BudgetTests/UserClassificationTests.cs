@@ -15,7 +15,10 @@ public class UserClassificationTests
     private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", 23.32M, DateTime.Now),
         new LineItem("Progressive Insurance", 800M, DateTime.Now),
         new LineItem("Stuff", 10, DateTime.Now));
-    
+
+
+    private Eff<IConsole, Classification> testClassify(Seq<Category> categories, LineItem lineItem) =>
+        UserClassification.classify.CoMap((IConsole c) => new UserClassification.ClassifyRT(c, categories, lineItem));
     
     [Fact]
     public void classifyAll_basicTest()
@@ -110,7 +113,7 @@ public class UserClassificationTests
             "Other 2.1"
         ]);
 
-        var result = UserClassification.classify(Categories, LineItems[0])
+        var result = testClassify(Categories, LineItems[0])
             .Map(c => (SubClassifications)c)
             .RunUnsafe(console);
         
@@ -128,7 +131,7 @@ public class UserClassificationTests
             "2"
         ]);
 
-        var result = UserClassification.classify(Categories, LineItems[0])
+        var result = testClassify(Categories, LineItems[0])
             .Map(c => (Categorized) c)
             .RunUnsafe(console);
 
@@ -178,7 +181,7 @@ public class UserClassificationTests
             "Other"
         ]);
 
-        var result = UserClassification.classify(Categories, LineItems[0])
+        var result = testClassify(Categories, LineItems[0])
             .Map(c => (Categorized) c)
             .RunUnsafe(console);
 
@@ -254,7 +257,7 @@ public class UserClassificationTests
             "Other"
         ]);
 
-        var result = UserClassification.classify(Categories, LineItems[0])
+        var result = testClassify(Categories, LineItems[0])
             .Map(c => (Categorized) c)
             .RunUnsafe(console);
         
@@ -270,7 +273,7 @@ public class UserClassificationTests
         var lineItems = Seq(new LineItem("PAYCHECK", 1000M, DateTime.Now),
             new LineItem("REBATE", 300M, DateTime.Now));
 
-        var results = lineItems.TraverseM(lineItem => UserClassification.classify(Categories, lineItem))
+        var results = lineItems.TraverseM(lineItem => testClassify(Categories, lineItem))
             .Map(cs => cs.Map(c => (Income)c))
             .RunUnsafe(console);
         
