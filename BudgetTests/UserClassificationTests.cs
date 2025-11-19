@@ -34,7 +34,9 @@ public class UnitTest1
   3) Car
   4) Work",
 // enter "* House 400"
+"$400.00 remaining to classify",
 // enter "3 200"
+"$200.00 remaining to classify",
 // enter "* Motorcycle 200" (excersing optional bullet points)"
 // todo will need a lot of error handling in subclasses
 @"Stuff: $10.00
@@ -85,7 +87,9 @@ public class UnitTest1
   3) Car
   4) Work",
             // enter "* 2 11.22"
+            "$12.10 remaining to classify",
             // enter "* Outdoors 10"
+            "$2.10 remaining to classify",
             // enter "Other 20"
 "Last entry exceeded total by $17.90 (only $2.10 left), please try again",
             // enter "* Other 10"
@@ -127,6 +131,122 @@ public class UnitTest1
         
         Assert.Equal("Food", result.Category.Value);
         Assert.Equal(expectedOutput, console.Outputs.Tail); // skip initial prompt
+    }
+    
+    [Fact]
+    public void classify_selectCategory_ShouldHandleCancellation()
+    {
+        var expectedOutput = Seq(
+            @"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work",
+                $"Please select a number between 1 and {Categories.Count}",
+                $"Please select a number between 1 and {Categories.Count}",
+                $"Please select a number between 1 and {Categories.Count}",
+                // "cancel"
+                "Previous in-progress classification cancelled",
+                @"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work",
+                $"Please select a number between 1 and {Categories.Count}",
+            // "cancel with extra text"
+                "Previous in-progress classification cancelled",
+                @"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work"
+        );
+        
+        var console = new TestConsole([
+            "0",
+            "notaNumber",
+            "-9",
+            "cancel",
+            "1234",
+            "cancel with extra text",
+            "Other"
+        ]);
+
+        var result = UserClassification.classify(Categories, LineItems[0])
+            .Map(c => (Categorized) c)
+            .RunUnsafe(console);
+        
+        Assert.Equal("Other", result.Category.Value);
+        Assert.Equal(expectedOutput, console.Outputs);
+    }
+    
+    
+    
+    [Fact]
+    public void classify_cancellation_ShouldCoverEverythingNeeded()
+    {
+        var expectedOutput = Seq(
+            @"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work",
+            // -9
+            $"Please select a number between 1 and {Categories.Count}",
+            // "cancel"
+            "Previous in-progress classification cancelled",
+            @"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work",
+            // enter "* 2 11.22"
+            "$12.10 remaining to classify",
+            // enter "* Outdoors 10"
+            "$2.10 remaining to classify",
+            // "cancel"
+            @"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work",
+            // enter "* 2 11.22"
+            "$12.10 remaining to classify",
+            // "* 54433 12.10"
+            $"Please select a number between 1 and {Categories.Count}",
+            // "cancel"
+            "Previous in-progress classification cancelled",
+            @"Frank's POS Charge: $23.32
+  1) Almsgiving
+  2) Food
+  3) Car
+  4) Work",
+            // "income 6"
+            $"Please select a number between 1 and {Categories.Count}"
+            // "cancel"
+            //"Other"
+        );
+        
+        var console = new TestConsole([
+            "-9",
+            "cancel",
+            "* 2 11.22",
+            "* Outdoors 10",
+            "cancel",
+            "* 2 11.22",
+            "* 54433 12.10",
+            "cancel",
+            "income 6",
+            "cancel",
+            "Other"
+        ]);
+
+        var result = UserClassification.classify(Categories, LineItems[0])
+            .Map(c => (Categorized) c)
+            .RunUnsafe(console);
+        
+        Assert.Equal("Other", result.Category.Value);
+        Assert.Equal(expectedOutput, console.Outputs);
     }
     
     [Fact]
