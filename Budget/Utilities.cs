@@ -113,6 +113,11 @@ public static class Csv
                 builder.Append(line[i]);
                 continue;
             }
+            
+            if (line[i] == '\n' || line[i] == 'r')
+            {
+                continue;
+            }
 
             // else is just regular character
             builder.Append(line[i]);
@@ -122,8 +127,6 @@ public static class Csv
         return toSeq(result);
     }
 }
-
-
 
 public abstract record CsvLine(Map<string, string> Fields, uint LineNumber);
 
