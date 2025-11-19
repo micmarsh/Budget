@@ -38,43 +38,43 @@ static Eff<ClassifyRT, Categorized> selectCategory(int index) =>
     select result;
 
 
-static Eff<ClassifyRT, SubClassifications> applySubClassifications(string s, Seq<Categorized> soFar) =>
+static Eff<ClassifyRT, SubClassifications> applySubClassifications(string s, Seq<SubCategorized> soFar) =>
     from _1 in guardNotCancelled(s)
     from categorized in getSubCategorized(s)
     let all = soFar.Add(categorized)
-    from result in subclassifyBasedOnTotals(seq, lineItem, all)
+    from result in subclassifyBasedOnTotals(all)
     select result;
 
-private static Eff<IConsole, SubClassifications> subclassifyBasedOnTotals(Seq<Category> seq, LineItem lineItem, Seq<Categorized> all)
-{
-    var total = all.Sum(c => c.LineItem.Amount);
-    if (total > lineItem.Amount)
+private static Eff<ClassifyRT, SubClassifications> subclassifyBasedOnTotals(Seq<SubCategorized> all)
+    => askE<ClassifyRT>().Map(c => c.LineItem).Bind(lineItem => 
     {
-        var previousItems = toSeq(all.SkipLast());
-        var previousTotal = previousItems.Sum(c => c.LineItem.Amount);
-        return
-            from _1 in log($"Last entry exceeded total by {total - lineItem.Amount:C} (only {lineItem.Amount - previousTotal:C} left), please try again")
-            from input in readLine()
-            from result in applySubClassifications(input, seq, lineItem, previousItems)
-            select result;
-    }
-
-    if (total < lineItem.Amount)
-    {
-        return from _1 in log($"{lineItem.Amount - total:C} remaining to classify")
+        var total = all.Sum(c => c.Amount);
+        if (total > lineItem.Amount)
+        {
+            var previousItems = toSeq(all.SkipLast());
+            var previousTotal = previousItems.Sum(c => c.Amount);
+            return
+                from _1 in log($"Last entry exceeded total by {total - lineItem.Amount:C} (only {lineItem.Amount - previousTotal:C} left), please try again")
                 from input in readLine()
-                from result in applySubClassifications(input, seq, lineItem, all)
+                from result in applySubClassifications(input, previousItems)
                 select result;
-    }
+        }
 
-    return Pure(SubClassifications.New(all, lineItem).IfNone(() => throw new Exception("This should never happen")));
+        if (total < lineItem.Amount)
+        {
+            return from _1 in log($"{lineItem.Amount - total:C} remaining to classify")
+                from input in readLine()
+                from result in applySubClassifications(input, all)
+                select result;
+        }
 
-}
+        return Pure(SubClassifications.New(all, lineItem).IfNone(() => throw new Exception("This should never happen")));
+    });
 
-static Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem) =>
-    applySubClassifications(s, seq, lineItem, Empty).Map(c => (Classification) c);
+static Eff<ClassifyRT, Classification> applySubClassifications(string s) =>
+    applySubClassifications(s, Empty).Map(c => (Classification) c);
 
-private static Eff<IConsole, Categorized> getSubCategorized(string s, Seq<Category> seq, LineItem lineItem)
+private static Eff<ClassifyRT, SubCategorized> getSubCategorized(string s)
 {
     var parts = toSeq(s.Replace("*", "").Trim().Split(" ").Select(s1=> s1.Trim()));
     var partsTuple =
@@ -83,13 +83,13 @@ private static Eff<IConsole, Categorized> getSubCategorized(string s, Seq<Catego
         select (CategoryString: cat, Amount: amount);
     return partsTuple.Match(
         tuple => parseInt(tuple.CategoryString)
-            .Match(selection => selectCategory(selection, seq, lineItem with { Amount = tuple.Amount }),
-                () => Pure(new Categorized(new Category(tuple.CategoryString), lineItem with { Amount = tuple.Amount }))),// needing a whole LineItem here might be excesive, need custom "SubCategorized"!
+            .Match(selection => selectCategory(selection).Map(c => new SubCategorized(c.Category, tuple.Amount)),
+                () => Pure(new SubCategorized(new Category(tuple.CategoryString), tuple.Amount))),
         () => 
             from _1 in log($"Incorrectly formatted subcategory '{s}', please try again")
             from input in readLine()
             from _2 in guardNotCancelled(input) // didn't anticipate this!
-            from result in getSubCategorized(input, seq, lineItem)
+            from result in getSubCategorized(input)
             select result
         );
 }
@@ -120,7 +120,7 @@ static Eff<ClassifyRT, Classification> classifyFromInput(string input) =>
     cond([
             (string.IsNullOrWhiteSpace(input), retry("Please enter a valid (non-empty) value")),
             (parseInt(input).IsSome, selectCategoryStr(input)),
-            (input.StartsWith('*'), applySubClassifications(input, categories, lineItem)),
+            (input.StartsWith('*'), applySubClassifications(input)),
             (input.ToLower().StartsWith("income"), classifyIncome(input)),
             (input.Equals("cancel"), retry("Nothing to cancel"))
         ], askE<ClassifyRT>().Map(rt => (Classification) new Categorized(new Category(input.Trim()), rt.LineItem)))

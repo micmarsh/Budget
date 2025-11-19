@@ -14,8 +14,8 @@ var lineItems = Seq(new LineItem("Frank's POS Charge", 23.34M, DateTime.Now),
     new LineItem("Progressive Insurance", 800M, DateTime.Now),
     new LineItem("Stuff", 10, DateTime.Now));
 
-lineItems.TraverseM(l => UserClassification.classify(cats, l))
-    .Run(new Console())
+lineItems.TraverseM(l => UserClassification.classify)
+    .Run(new UserClassification.ClassifyRT(new Console(), cats, lineItems[0]))
     .ThrowIfFail();
 
 // Similarly nothing to do with budget at all, but generally useful for C#? Doesn't even need LanguageExt dep!
