@@ -32,8 +32,49 @@ static Eff<IConsole, Categorized> selectCategory(int result, Seq<Category> seq, 
         reselectCategory(seq, lineItem1) : 
         Pure(new Categorized(seq[result - 1], lineItem1));
 
-static Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem1) =>
-    new Fail<Error>(new NotImplementedException(nameof(applySubClassifications)));
+
+static Eff<IConsole, SubClassifications> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem,
+    Seq<Categorized> soFar) =>
+    from _1 in guardNotCancelled(s)
+    from categorized in getSubCategorized(s, seq, lineItem)
+    let all = soFar.Add(categorized)
+    from result in subclassifyBasedOnTotals(seq, lineItem, all)
+    select result;
+
+private static Eff<IConsole, SubClassifications> subclassifyBasedOnTotals(Seq<Category> seq, LineItem lineItem, Seq<Categorized> all)
+{
+    var total = all.Sum(c => c.LineItem.Amount);
+    if (total > lineItem.Amount)
+    {
+        var previousItems = toSeq(all.SkipLast());
+        var previousTotal = previousItems.Sum(c => c.LineItem.Amount);
+        return
+            from _1 in log($"Last entry exceeded total by {total - lineItem.Amount:C} (only {lineItem.Amount - previousTotal:C} left), please try again")
+            from input in readLine()
+            from result in applySubClassifications(input, seq, lineItem, previousItems)
+            select result;
+    }
+
+    if (total < lineItem.Amount)
+    {
+        return from _1 in log($"{lineItem.Amount - total:C} remaining to classify")
+                from input in readLine()
+                from result in applySubClassifications(input, seq, lineItem, all)
+                select result;
+    }
+
+    return Pure(SubClassifications.New(all, lineItem).IfNone(() => throw new Exception("This should never happen")));
+
+}
+
+static Eff<IConsole, Classification> applySubClassifications(string s, Seq<Category> seq, LineItem lineItem) =>
+    applySubClassifications(s, seq, lineItem, Empty).Map(c => (Classification) c);
+
+private static Eff<IConsole, Categorized> getSubCategorized(string s, Seq<Category> seq, LineItem lineItem)
+{
+    throw new NotImplementedException();
+}
+
 
 static Eff<IConsole, Classification> classifyIncome(string s, Seq<Category> seq, LineItem lineItem1)
 {
@@ -55,17 +96,18 @@ static Eff<IConsole, Classification> selectCategoryStr(string input, Seq<Categor
         .Map(c => (Classification)c)
         .As();
 
+static Eff<IConsole, Classification> retry(string message, Seq<Category> categories, LineItem lineItem) =>
+    log(message).Bind(_ => classify(categories, lineItem));
+
 static Eff<IConsole, Classification> classifyFromInput(string input, Seq<Category> categories, LineItem lineItem) =>
     cond([
-            (string.IsNullOrWhiteSpace(input), log("Please enter a valid (non-empty) value")
-                .Bind(_ => classify(categories, lineItem))),
+            (string.IsNullOrWhiteSpace(input), retry("Please enter a valid (non-empty) value", categories, lineItem)),
             (parseInt(input).IsSome, selectCategoryStr(input, categories, lineItem)),
             (input.StartsWith('*'), applySubClassifications(input, categories, lineItem)),
             (input.ToLower().StartsWith("income"), classifyIncome(input, categories, lineItem))
             // "cancel" is also noteworthy syntax, but not/shouldn't be checked for here
         ], new Categorized(new Category(input.Trim()), lineItem))
-        .Catch(StateCancelledCode, _ => log("Previous in-progress classification cancelled")
-            .Bind(_ => classify(categories, lineItem)))
+        .Catch(StateCancelledCode, _ => retry("Previous in-progress classification cancelled", categories, lineItem))
         .As();
 
 static string getMainPrompt(Seq<Category> categories, LineItem lineItem) =>
