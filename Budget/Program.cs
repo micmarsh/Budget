@@ -15,7 +15,7 @@ string CreateSHAHash(string phrase)
     var phraseAsByte = Encoding.UTF8.GetBytes(string.Concat(phrase));
     var encryptedBytes = hashTool.ComputeHash(phraseAsByte);
     hashTool.Clear();
-    return Convert.ToBase64String(encryptedBytes);
+    return Convert.ToHexString(encryptedBytes).Substring(0, 15).ToLower();
 }
 
 var fileReads = new FileReads();
@@ -25,7 +25,7 @@ const string csvPath = "/home/michael/Downloads/Huntington_Delimited.csv";
 var hasher = SHA1.Create();
 var fileHash = fileReads.GetFileText(csvPath).Map(CreateSHAHash).Run();
 
-var liteDbString = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + $"BudgetDb.{fileHash}.db";
+var liteDbString = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + $"/BudgetDb.{fileHash}.db";
 
 ConsoleClassifier.Create(new CsvInfo(
     FilePath: csvPath,
