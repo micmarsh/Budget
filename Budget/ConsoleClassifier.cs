@@ -15,8 +15,6 @@ public static class ConsoleClassifier
         
         select unit;
 
-    // todo re-think this, maybe can just pass in "info" at least? Probably pretty straightforward?
-    // maybe this can just be generic applicative, lift into Eff in caller?
     private static (Seq<Error> Errors, Seq<LineItem> lineItems) parseCsvLines(CsvInfo info, CsvLines lines)
         => lines.Lines.Map(line =>   
                 (line.Fields.Find(info.DescriptionField).ToValidation(Error.New($"Line {line.LineNumber} missing description field")), 
