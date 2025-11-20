@@ -2,9 +2,12 @@ using LanguageExt;
 
 namespace Budget;
 
-public sealed record Category(string Value); // NonEmpty string, use those "domain NewType substitutes", for this?
+public sealed record Category(string Value, bool IsIncome = false);
 
-public abstract record Classification(LineItem LineItem);
+public abstract record Classification(LineItem LineItem) : IComparable<Classification>
+{
+    public int CompareTo(Classification? other) => this == other ? 0 : 1;
+};
 
 public sealed record Categorized(Category Category, LineItem LineItem) : Classification(LineItem);
 
