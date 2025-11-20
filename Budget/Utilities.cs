@@ -97,7 +97,6 @@ public static class Csv
             if (line[i] == '"')
             {
                 quoted = !quoted;
-                builder.Append(line[i]);
                 continue;
             }
 
