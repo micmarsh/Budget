@@ -9,13 +9,18 @@ namespace Budget;
 public static class ConsoleClassifier
 {
     public static Eff<Runtime, Unit> Create(CsvInfo input) =>
+        from state in restoreLastState(input)
+        from _1 in UserClassification.classifyAll(state.Categories, state.LineItems)
+        select unit;
+
+    public static Eff<Runtime, (Seq<Category> Categories, Seq<LineItem> LineItems)> restoreLastState(CsvInfo input) =>
         from rt in askE<Runtime>()
         from csvLines in rt.FileReads.GetFileText(input.FilePath).Map(Csv.ParseText)
         let parsedCsv = parseCsvLines(input, csvLines)
+        from _ in guard(parsedCsv.Errors.IsEmpty, Error.Many(parsedCsv.Errors)) // comment this out if blocking too much
         from lastSaved in rt.Storage.GetLatest()
         let lineItems = fastForward(lastSaved, parsedCsv.LineItems)
-        from _1 in UserClassification.classifyAll(lastSaved.Categories, lineItems)
-        select unit;
+        select (lastSaved.Categories, lineItems);
 
     private static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInfo info, CsvLines lines)
         => lines.Lines.Map(line =>   
