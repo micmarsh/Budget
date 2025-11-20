@@ -28,4 +28,7 @@ public sealed record SubClassifications : Classification
 public sealed record SubCategorized(Category Category, decimal Amount);
 
 
-public sealed record LineItem(string Description, decimal Amount, DateTime Date);
+public sealed record LineItem(string Description, decimal Amount, DateTime Date) : IComparable<LineItem>
+{
+    public int CompareTo(LineItem? other) => this == other ? 0 : -1;
+}

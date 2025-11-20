@@ -31,13 +31,14 @@ public class LiteDBStorage : IStorage
                     .OrderByDescending(c => c.DateTime)
                     .Select(c => c.DateTime)
                     .FirstOrDefault();
-                var lastClassifications = coll.Query()
-                    .Where(c => c.DateTime.Date == lastDay.Date)
-                    .ToEnumerable();
+                var lastClassifications = coll
+                    .Find(c => c.DateTime.Date == lastDay.Date)
+                    .Select(doc => doc.Record)
+                    .ToList();
                 return new ClassificationsState(
                     lastDay,
-                    toSeq(catsColl.Find(_ => true)),
-                    toSet(lastClassifications.Select(doc => doc.Record))
+                    toSeq(catsColl.Find(_ => true).ToList()),
+                    toSet(lastClassifications)
                     );
             }),
             Fin: conn => IO.lift(conn.Dispose)).As();
