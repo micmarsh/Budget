@@ -17,13 +17,9 @@ public class UserClassificationTests
         new LineItem("Stuff", 10, DateTime.Now));
 
 
-    private Eff<IConsole, Classification> testClassify(Seq<Category> categories, LineItem lineItem)
-    {
-        var atom = Atom(default(Classification));
-        return UserClassification.classifyAll(c => atom.SwapIO(_1 => c).Map(ignore), categories, [lineItem])
-            .Map(_ => atom.Value ?? throw new InvalidOperationException());
-    }
-        
+    private Eff<IConsole, Classification> testClassify(Seq<Category> categories, LineItem lineItem) =>
+         UserClassification.classify.CoMap((IConsole c) =>
+            new UserClassification.ClassifyRT(c, categories, lineItem));
     
     [Fact]
     public void classifyAll_basicTest()
@@ -71,8 +67,8 @@ public class UserClassificationTests
             "income Interest Payment"
         ]);
         
-        var _ = UserClassification.classifyAll(_ => unitIO, Categories, LineItems)
-            .RunUnsafe(console);
+        var _ = UserClassification.classifyAll(Categories, LineItems)
+            .RunUnsafe(ConsoleOnly(console));
 
         console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
     }
@@ -86,8 +82,9 @@ public class UserClassificationTests
         
         var inputs = toSeq(Enumerable.Repeat("1", itemCount));
 
-        var _ = UserClassification.classifyAll(_ => unitIO, Categories, lineItems)
-            .RunUnsafe(new TestConsole(inputs));
+        var _ = UserClassification.classifyAll(Categories, lineItems)
+            .RunUnsafe(ConsoleOnly(new TestConsole(inputs)));
+
     }
 
     [Fact]
@@ -284,5 +281,18 @@ public class UserClassificationTests
         
         Assert.Equal("Work", results[0].Category.Value);
         Assert.Equal("Rebate", results[1].Category.Value);
+    }
+
+    private static Runtime ConsoleOnly(IConsole c) => new (new NoopFile(), new NoopStorage(), c);
+
+    private class NoopStorage : IStorage
+    {
+        public IO<ClassificationsState> GetLatest() => IO.empty<ClassificationsState>();
+        public IO<Unit> Save(Classification classified) => unitIO;
+    }
+    
+    private class NoopFile : IFileReads
+    {
+        public IO<string> GetFileText(string filePath) => IO.pure(string.Empty);
     }
 }

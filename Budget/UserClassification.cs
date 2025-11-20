@@ -8,20 +8,25 @@ namespace Budget;
 
 public static class UserClassification
 {
-    public static Eff<IConsole, Unit> classifyAll(Func<Classification, IO<Unit>> store, 
-        Seq<Category> categories,
-        Seq<LineItem> lineItems) =>
+    public static Eff<Runtime, Unit> classifyAll(Seq<Category> categories, Seq<LineItem> lineItems) =>
         // Need "FoldBack" in order to stack actions in correct order? Is this a bug?
         lineItems.FoldBackM(categories, (cats, lineItem) =>
-                from @class in classify.CoMap((IConsole c) => new ClassifyRT(c, cats, lineItem))
-                from _ in store(@class)
+                from @class in classify.CoMap((Runtime rt) => new ClassifyRT(rt.Console, cats, lineItem))
+                from store in asks((Runtime rt) => rt.Storage)
+                from _ in store.Save(@class)
                 select addNewCategories(@class, cats))
             .IgnoreF()
             .As();
     
-    private sealed record ClassifyRT(IConsole Console, Seq<Category> Categories, LineItem LineItem);
+    /// <summary>
+    /// Public for testing only
+    /// </summary>
+    public sealed record ClassifyRT(IConsole Console, Seq<Category> Categories, LineItem LineItem);
 
-    private static readonly Eff<ClassifyRT, Classification> classify =
+    /// <summary>
+    /// Public for testing only
+    /// </summary>
+    public static readonly Eff<ClassifyRT, Classification> classify =
         from rt in askE<ClassifyRT>()
         from _1 in log(getMainPrompt(rt.Categories, rt.LineItem))
         from input in readLine

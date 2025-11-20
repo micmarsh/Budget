@@ -21,7 +21,7 @@ public interface IStorage
 public record ClassificationsState(
     DateTime Date,
     Seq<Category> Categories,
-    Seq<Classification> OnDate);
+    Set<Classification> OnDate);
 
 public interface IFileReads
 {
