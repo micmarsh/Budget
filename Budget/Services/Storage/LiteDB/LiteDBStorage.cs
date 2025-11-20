@@ -15,7 +15,6 @@ public class LiteDBStorage : IStorage
         _connectionString = connectionString;
         _newObjectId = newObjectId;
         var mapper = BsonMapper.Global;
-        mapper.RegisterType(serializeSeq<Category>(mapper), deserializeSeq<Category>(mapper));
         mapper.RegisterType(serializeSeq<SubCategorized>(mapper), deserializeSeq<SubCategorized>(mapper));
     }
     
