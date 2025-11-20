@@ -48,7 +48,7 @@ public static class UserClassification
     
 
     static string getMainPrompt(Seq<Category> categories, LineItem lineItem) =>
-        string.Join(Environment.NewLine, $"{lineItem.Description}: {lineItem.Amount:C}"
+        string.Join(Environment.NewLine, $"{lineItem.Description}: {lineItem.Amount:C} on {lineItem.Date:D}"
             .Cons(categories.Map((c, i) => $"  {i + 1}) {c.Value}")));
 
     private static Seq<Category> addNewCategories(Classification @class, Seq<Category> cats) => 

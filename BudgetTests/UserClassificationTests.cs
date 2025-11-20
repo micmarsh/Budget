@@ -12,9 +12,11 @@ public class UserClassificationTests
         new Category("Car"),
         new Category("Work"));
 
-    private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", 23.32M, DateTime.Now),
-        new LineItem("Progressive Insurance", 800M, DateTime.Now),
-        new LineItem("Stuff", 10, DateTime.Now));
+    private static readonly DateTime TestDate = new (2025, 11, 20);
+
+    private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", 23.32M, TestDate),
+        new LineItem("Progressive Insurance", 800M, TestDate),
+        new LineItem("Stuff", 10, TestDate));
 
 
     private Eff<IConsole, Classification> testClassify(Seq<Category> categories, LineItem lineItem) =>
@@ -25,20 +27,20 @@ public class UserClassificationTests
     public void classifyAll_basicTest()
     {
         var expectedOutput = Seq(
-@"Frank's POS Charge: $23.32
+@"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
   4) Work",
 // input: two blank spaces
 "Please enter a valid (non-empty) value",
-@"Frank's POS Charge: $23.32
+@"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
   4) Work",
 // select 2/"Food"
-@"Progressive Insurance: $800.00
+@"Progressive Insurance: $800.00 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -48,7 +50,7 @@ public class UserClassificationTests
 // enter "3 200"
 "$200.00 remaining to classify",
 // enter "* Motorcycle 200" (exercising optional bullet points)"
-@"Stuff: $10.00
+@"Stuff: $10.00 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -78,7 +80,7 @@ public class UserClassificationTests
     {
         const int itemCount = 100000;
         var lineItems = toSeq(Enumerable.Range(0, itemCount))
-            .Map(i => new LineItem($"Item {i}", 100, DateTime.Now));
+            .Map(i => new LineItem($"Item {i}", 100, TestDate));
         
         var inputs = toSeq(Enumerable.Repeat("1", itemCount));
 
@@ -91,7 +93,7 @@ public class UserClassificationTests
     public void classify_applySubClassifications_ShouldEnforceTotals()
     {
         var expectedOutput = Seq(
-            @"Frank's POS Charge: $23.32
+            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -148,7 +150,7 @@ public class UserClassificationTests
     public void classify_selectCategory_ShouldHandleCancellation()
     {
         var expectedOutput = Seq(
-            @"Frank's POS Charge: $23.32
+            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -158,7 +160,7 @@ public class UserClassificationTests
                 $"Please select a number between 1 and {Categories.Count}",
                 // "cancel"
                 "Previous in-progress classification cancelled",
-                @"Frank's POS Charge: $23.32
+                @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -166,7 +168,7 @@ public class UserClassificationTests
                 $"Please select a number between 1 and {Categories.Count}",
             // "cancel with extra text"
                 "Previous in-progress classification cancelled",
-                @"Frank's POS Charge: $23.32
+                @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -197,7 +199,7 @@ public class UserClassificationTests
     public void classify_cancellation_ShouldCoverEverythingNeeded()
     {
         var expectedOutput = Seq(
-            @"Frank's POS Charge: $23.32
+            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -206,7 +208,7 @@ public class UserClassificationTests
             $"Please select a number between 1 and {Categories.Count}",
             // "cancel"
             "Previous in-progress classification cancelled",
-            @"Frank's POS Charge: $23.32
+            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -217,7 +219,7 @@ public class UserClassificationTests
             "$2.10 remaining to classify",
             // "cancel"
             "Previous in-progress classification cancelled",
-            @"Frank's POS Charge: $23.32
+            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -228,7 +230,7 @@ public class UserClassificationTests
             $"Please select a number between 1 and {Categories.Count}",
             // "cancel"
             "Previous in-progress classification cancelled",
-            @"Frank's POS Charge: $23.32
+            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
@@ -237,7 +239,7 @@ public class UserClassificationTests
             $"Please select a number between 1 and {Categories.Count}",
             // "cancel"
             "Previous in-progress classification cancelled",
-            @"Frank's POS Charge: $23.32
+            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
