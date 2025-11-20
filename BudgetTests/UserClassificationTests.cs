@@ -17,8 +17,13 @@ public class UserClassificationTests
         new LineItem("Stuff", 10, DateTime.Now));
 
 
-    private Eff<IConsole, Classification> testClassify(Seq<Category> categories, LineItem lineItem) =>
-        UserClassification.classify.CoMap((IConsole c) => new UserClassification.ClassifyRT(c, categories, lineItem));
+    private Eff<IConsole, Classification> testClassify(Seq<Category> categories, LineItem lineItem)
+    {
+        var atom = Atom(default(Classification));
+        return UserClassification.classifyAll(c => atom.SwapIO(_1 => c).Map(ignore), categories, [lineItem])
+            .Map(_ => atom.Value ?? throw new InvalidOperationException());
+    }
+        
     
     [Fact]
     public void classifyAll_basicTest()

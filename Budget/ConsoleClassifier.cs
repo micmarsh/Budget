@@ -10,24 +10,21 @@ public static class ConsoleClassifier
 {
     public static Eff<Runtime, Unit> Create(CsvInfo input) =>
         from rt in askE<Runtime>()
-        from fileText in rt.FileReads.GetFileText(input.FilePath)
-        let csvLines = Csv.ParseText(fileText)
-        from lineItems in parseCsvLines<Eff<CsvInfo>>(csvLines).As().CoMap((Runtime _) => input)
+        from csvLines in rt.FileReads.GetFileText(input.FilePath).Map(Csv.ParseText)
+        let lineItems = parseCsvLines(input, csvLines)
         
         select unit;
 
     // todo re-think this, maybe can just pass in "info" at least? Probably pretty straightforward?
     // maybe this can just be generic applicative, lift into Eff in caller?
-    public static K<M, (Seq<Error> Errors, Seq<LineItem> lineItems)> parseCsvLines<M>(CsvLines lines)
-        where M : Monad<M>, Readable<M, CsvInfo>
-        => lines.Lines.Map(line => line switch
-        {
-            ValidCsvLine(var fields, _) => 
-                (fields.Find()),
-            LongCsvLine longCsvLine => throw new NotImplementedException(),
-            ShortCsvLine shortCsvLine => throw new NotImplementedException(),
-            _ => throw patternMatchError(line)
-        });
+    private static (Seq<Error> Errors, Seq<LineItem> lineItems) parseCsvLines(CsvInfo info, CsvLines lines)
+        => lines.Lines.Map(line =>   
+                (line.Fields.Find(info.DescriptionField).ToValidation(Error.New($"Line {line.LineNumber} missing description field")), 
+                 line.Fields.Find(info.AmountField).Bind(parseDecimal).ToValidation(Error.New($"Line {line.LineNumber} missing or invalid amount field")),
+                 line.Fields.Find(info.DateField).Bind(parseDateTime).ToValidation(Error.New($"Line {line.LineNumber} has an invalid date field")))
+                .Apply((desc, amount, date) => new LineItem(desc, amount, date)))
+            .Map(v => v.As().ToEither())
+            .Partition();
 }
 
 public record CsvInfo(string FilePath, string DescriptionField, string AmountField, string DateField);

@@ -14,9 +14,9 @@ var lineItems = Seq(new LineItem("Frank's POS Charge", 23.34M, DateTime.Now),
     new LineItem("Progressive Insurance", 800M, DateTime.Now),
     new LineItem("Stuff", 10, DateTime.Now));
 
-lineItems.TraverseM(l => UserClassification.classify)
-    .Run(new UserClassification.ClassifyRT(new Console(), cats, lineItems[0]))
-    .ThrowIfFail();
+// lineItems.TraverseM(l => UserClassification.classify)
+//     .Run(new UserClassification.ClassifyRT(new Console(), cats, lineItems[0]))
+//     .ThrowIfFail();
 
 
 // Overall idea: localhost/0.0.0.0 running server, "local first" app that tries to sync with "basic REST" (maybe 

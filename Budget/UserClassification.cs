@@ -8,15 +8,6 @@ namespace Budget;
 
 public static class UserClassification
 {
-    public sealed record ClassifyRT(IConsole Console, Seq<Category> Categories, LineItem LineItem);
-
-    public static Eff<ClassifyRT, Classification> classify =>
-        from rt in askE<ClassifyRT>()
-        from _1 in log(getMainPrompt(rt.Categories, rt.LineItem))
-        from input in readLine()
-        from result in classifyFromInput(input)
-        select result;
-
     public static Eff<IConsole, Unit> classifyAll(Func<Classification, IO<Unit>> store, 
         Seq<Category> categories,
         Seq<LineItem> lineItems) =>
@@ -27,6 +18,15 @@ public static class UserClassification
                 select addNewCategories(@class, cats))
             .IgnoreF()
             .As();
+    
+    private sealed record ClassifyRT(IConsole Console, Seq<Category> Categories, LineItem LineItem);
+
+    private static readonly Eff<ClassifyRT, Classification> classify =
+        from rt in askE<ClassifyRT>()
+        from _1 in log(getMainPrompt(rt.Categories, rt.LineItem))
+        from input in readLine
+        from result in classifyFromInput(input)
+        select result;
     
     static Eff<ClassifyRT, Classification> classifyFromInput(string input) =>
         cond([
@@ -70,10 +70,10 @@ public static class UserClassification
         select result;
     
     
-    static Eff<ClassifyRT, Categorized> reselectCategory =>
+    static readonly Eff<ClassifyRT, Categorized> reselectCategory =
         from rt in askE<ClassifyRT>()
         from _1 in log($"Please select a number between 1 and {rt.Categories.Count}")
-        from selection in readLine()
+        from selection in readLine
         from _2 in guardNotCancelled(selection)
         from result in int.TryParse(selection, out var index)
             ? selectCategory(index)
@@ -100,7 +100,7 @@ public static class UserClassification
                 var previousTotal = previousItems.Sum(c => c.Amount);
                 return
                     from _1 in log($"Last entry exceeded total by {total - lineItem.Amount:C} (only {lineItem.Amount - previousTotal:C} left), please try again")
-                    from input in readLine()
+                    from input in readLine
                     from result in applySubClassifications(input, previousItems)
                     select result;
             }
@@ -108,7 +108,7 @@ public static class UserClassification
             if (total < lineItem.Amount)
             {
                 return from _1 in log($"{lineItem.Amount - total:C} remaining to classify")
-                    from input in readLine()
+                    from input in readLine
                     from result in applySubClassifications(input, all)
                     select result;
             }
@@ -129,7 +129,7 @@ public static class UserClassification
                     () => Pure(new SubCategorized(new Category(tuple.CategoryString), tuple.Amount))),
             () => 
                 from _1 in log($"Incorrectly formatted subcategory '{s}', please try again")
-                from input in readLine()
+                from input in readLine
                 from _2 in guardNotCancelled(input) // didn't anticipate this!
                 from result in getSubCategorized(input)
                 select result
@@ -149,7 +149,7 @@ public static class UserClassification
     
     static Eff<ClassifyRT, Unit> log(string message) => askE<ClassifyRT>().Bind(c => c.Console.WriteLine(message));
 
-    static Eff<ClassifyRT, string> readLine() => askE<ClassifyRT>().Bind(c => c.Console.ReadLine());
+    static readonly Eff<ClassifyRT, string> readLine = askE<ClassifyRT>().Bind(c => c.Console.ReadLine());
 
     private const int StateCancelledCode = 345;
 
