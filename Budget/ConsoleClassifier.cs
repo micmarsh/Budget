@@ -24,13 +24,20 @@ public static class ConsoleClassifier
 
     private static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInfo info, CsvLines lines)
         => lines.Lines.Map(line =>   
-                (line.Fields.Find(info.DescriptionField).ToValidation(Error.New($"Line {line.LineNumber} missing description field")), 
-                    line.Fields.Find(info.AmountField).Bind(parseDecimal).ToValidation(Error.New($"Line {line.LineNumber} missing or invalid amount field")),
-                    line.Fields.Find(info.DateField).Bind(parseDateTime).ToValidation(Error.New($"Line {line.LineNumber} has an invalid date field")))
+                (getDescription(info, line), 
+                line.Fields.Find(info.AmountField).Bind(parseDecimal).ToValidation(Error.New($"Line {line.LineNumber} missing or invalid amount field")),
+                line.Fields.Find(info.DateField).Bind(parseDateTime).ToValidation(Error.New($"Line {line.LineNumber} has an invalid date field")))
                 .Apply((desc, amount, date) => new LineItem(desc, amount, date)))
             .Map(v => v.As().ToEither())
             .Partition();
-    
+
+    private static Validation<Error, string> getDescription(CsvInfo info, CsvLine line) =>
+        line.Fields.Find(info.DescriptionField)
+            .Filter(desc => ! string.IsNullOrWhiteSpace(desc))
+            .Catch((Unit _) => line.Fields.Find(info.BackupDescription)).As()
+            .Filter(desc => ! string.IsNullOrWhiteSpace(desc))
+            .ToValidation(Error.New($"Line {line.LineNumber} missing description field"));
+
     private static Seq<LineItem> fastForward(ClassificationsState lastSaved, Seq<LineItem> lineItems)
     {
         var alreadyClassified = lastSaved.OnDate.Map(c => c.LineItem);
@@ -43,4 +50,4 @@ public static class ConsoleClassifier
     }
 }
 
-public record CsvInfo(string FilePath, string DescriptionField, string AmountField, string DateField);
+public record CsvInfo(string FilePath, string DescriptionField, string AmountField, string DateField, string BackupDescription = "");

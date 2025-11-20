@@ -31,7 +31,8 @@ ConsoleClassifier.Create(new CsvInfo(
     FilePath: csvPath,
     DescriptionField: "Payee Name",
     AmountField: "Amount",
-    DateField: "Date"
+    DateField: "Date",
+    BackupDescription: "Memo"
 ))
 .RunUnsafe(new Runtime(fileReads, new LiteDBStorage(liteDbString, ObjectId.NewObjectId), new Console()));
 
