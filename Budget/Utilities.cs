@@ -114,7 +114,7 @@ public static class Csv
                 continue;
             }
             
-            if (line[i] == '\n' || line[i] == 'r')
+            if (line[i] == '\n' || line[i] == '\r')
             {
                 continue;
             }
