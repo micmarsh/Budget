@@ -16,6 +16,10 @@ public class LiteDBStorage : IStorage
         _newObjectId = newObjectId;
         var mapper = BsonMapper.Global;
         mapper.RegisterType(serializeSeq<SubCategorized>(mapper), deserializeSeq<SubCategorized>(mapper));
+        mapper.RegisterType(
+            serialize: c => new BsonDocument {["_id"] = c.Value},
+            deserialize: doc => new Category(doc["_id"].AsString)
+        );
     }
     
     
@@ -51,7 +55,6 @@ public class LiteDBStorage : IStorage
                 coll.Insert(new ClassificationDoc(_newObjectId(), classified.LineItem.Date, classified));
                 
                 var catsColl = conn.GetCollection<Category>(nameof(Category));
-                catsColl.EnsureIndex(c => c.Value, unique: true);
                 var categories = classified switch
                 {
                     Categorized categorized => [categorized.Category],
