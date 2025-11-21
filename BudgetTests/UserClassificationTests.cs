@@ -6,20 +6,20 @@ namespace BudgetTests;
 public class UserClassificationTests
 {
 
-    private readonly Seq<Category> Categories = Seq(
-        new Category("Almsgiving"),
-        new Category("Food"),
-        new Category("Car"),
-        new Category("Work"));
+    private readonly Seq<CategorySelectOption> Categories = Seq(
+        new CategorySelectOption(new Category("Almsgiving"), false),
+        new CategorySelectOption(new Category("Food"), false),
+        new CategorySelectOption(new Category("Car"), false),
+        new CategorySelectOption(new Category("Work"), true));
 
     private static readonly DateTime TestDate = new (2025, 11, 20);
 
-    private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", 23.32M, TestDate),
-        new LineItem("Progressive Insurance", 800M, TestDate),
-        new LineItem("Stuff", 10, TestDate));
+    private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", -23.32M, TestDate),
+        new LineItem("Progressive Insurance", -800M, TestDate),
+        new LineItem("Stuff", -10, TestDate));
 
 
-    private Eff<IConsole, Classification> testClassify(Seq<Category> categories, LineItem lineItem) =>
+    private Eff<IConsole, Classification> testClassify(Seq<CategorySelectOption> categories, LineItem lineItem) =>
          UserClassification.classify.CoMap((IConsole c) =>
             new UserClassification.ClassifyRT(c, categories, lineItem));
     
@@ -31,20 +31,20 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
 // input: two blank spaces
 "Please enter a valid (non-empty) value",
 @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
 // select 2/"Food"
 @"Progressive Insurance: $800.00 on Thursday, November 20, 2025
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
 // enter "* House 400"
 "$400.00 remaining to classify",
 // enter "3 200"
@@ -54,7 +54,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work
+  4) Work (Income)
   5) House
   6) Motorcycle"
 // enter "income Interest Payment"
@@ -97,7 +97,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
             // enter "* 2 11.22"
             "$12.10 remaining to classify",
             // enter "* Outdoors 10"
@@ -154,7 +154,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
                 $"Please select a number between 1 and {Categories.Count}",
                 $"Please select a number between 1 and {Categories.Count}",
                 $"Please select a number between 1 and {Categories.Count}",
@@ -164,7 +164,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
                 $"Please select a number between 1 and {Categories.Count}",
             // "cancel with extra text"
                 "Previous in-progress classification cancelled",
@@ -172,7 +172,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work"
+  4) Work (Income)"
         );
         
         var console = new TestConsole([
@@ -203,7 +203,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
             // -9
             $"Please select a number between 1 and {Categories.Count}",
             // "cancel"
@@ -212,7 +212,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
             // enter "* 2 11.22"
             "$12.10 remaining to classify",
             // enter "* Outdoors 10"
@@ -223,7 +223,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
             // enter "* 2 11.22"
             "$12.10 remaining to classify",
             // "* 54433 12.10"
@@ -234,7 +234,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work",
+  4) Work (Income)",
             // "income 6"
             $"Please select a number between 1 and {Categories.Count}",
             // "cancel"
@@ -243,7 +243,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car
-  4) Work"
+  4) Work (Income)"
             //"Other"
         );
         
@@ -272,13 +272,13 @@ public class UserClassificationTests
     [Fact]
     public void classify_income_ShouldAllowSelectingCategories()
     {
-        var console = new TestConsole(["income 4", "income Rebate"]);
+        var console = new TestConsole(["4", "Rebate"]);
 
         var lineItems = Seq(new LineItem("PAYCHECK", 1000M, DateTime.Now),
             new LineItem("REBATE", 300M, DateTime.Now));
 
         var results = lineItems.TraverseM(lineItem => testClassify(Categories, lineItem))
-            .Map(cs => cs.Map(c => (Income)c))
+            .Map(cs => cs.Map(c => (Categorized)c))
             .RunUnsafe(console);
         
         Assert.Equal("Work", results[0].Category.Value);

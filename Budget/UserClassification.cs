@@ -8,7 +8,7 @@ namespace Budget;
 
 public static class UserClassification
 {
-    public static Eff<Runtime, Unit> classifyAll(Seq<Category> categories, Seq<LineItem> lineItems) =>
+    public static Eff<Runtime, Unit> classifyAll(Seq<CategorySelectOption> categories, Seq<LineItem> lineItems) =>
         // Need "FoldBack" in order to stack actions in correct order? Is this a bug?
         lineItems.FoldBackM(categories, (cats, lineItem) =>
                 from @class in classify.CoMap((Runtime rt) => new ClassifyRT(rt.Console, cats, lineItem))
@@ -21,7 +21,7 @@ public static class UserClassification
     /// <summary>
     /// Public for testing only
     /// </summary>
-    public sealed record ClassifyRT(IConsole Console, Seq<Category> Categories, LineItem LineItem);
+    public sealed record ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem);
 
     /// <summary>
     /// Public for testing only
@@ -38,7 +38,6 @@ public static class UserClassification
                 (string.IsNullOrWhiteSpace(input), retry("Please enter a valid (non-empty) value")),
                 (parseInt(input).IsSome, selectCategory(input)),
                 (input.StartsWith('*'), applySubClassifications(input)),
-                (input.ToLower().StartsWith("income"), classifyIncome(input)),
                 (input.Equals("cancel"), retry("Nothing to cancel"))
             ], askE<ClassifyRT>().Map(rt => (Classification) new Categorized(new Category(input.Trim()), rt.LineItem)))
             .Catch(StateCancelledCode, _ => retry("Previous in-progress classification cancelled"))
@@ -47,16 +46,16 @@ public static class UserClassification
     static Eff<ClassifyRT, Classification> retry(string message) => log(message).Bind(_ => classify);
     
 
-    static string getMainPrompt(Seq<Category> categories, LineItem lineItem) =>
+    static string getMainPrompt(Seq<CategorySelectOption> categories, LineItem lineItem) =>
         string.Join(Environment.NewLine, $"{lineItem.Description}: {lineItem.Amount:C} on {lineItem.Date:D}"
-            .Cons(categories.Map((c, i) => $"  {i + 1}) {c.Value}")));
+            .Cons(categories.Map((c, i) => $"  {i + 1}) {c.Category.Value}${(c.IsIncome ? " (Income)" : "")}")));
 
-    private static Seq<Category> addNewCategories(Classification @class, Seq<Category> cats) => 
+    private static Seq<CategorySelectOption> addNewCategories(Classification @class, Seq<CategorySelectOption> cats) => 
         @class switch
         {
-            Categorized categorized => cats.Add(categorized.Category).Distinct(),
-            Income income => cats.Add(income.Category).Distinct(),
-            SubClassifications subs => cats.Concat(subs.Children.Map(c => c.Category)).Distinct(),
+            Categorized(var category, {Amount: var amount})  => new CategorySelectOption(category, amount > 0).Cons(cats).Distinct(),
+            SubClassifications subs => subs.Children.Map(c => new CategorySelectOption(c.Category, false)) // this needs to be validated elsewhere
+                .Concat(cats).Distinct(),
             _ => throw patternMatchError(@class)
         };
 
@@ -71,7 +70,7 @@ public static class UserClassification
         let cats = rt.Categories
         from result in index< 1 || index > cats.Count ? 
             reselectCategory : 
-            Pure(new Categorized(cats[index - 1], rt.LineItem))
+            Pure(new Categorized(cats[index - 1].Category, rt.LineItem))
         select result;
     
     
@@ -139,17 +138,6 @@ public static class UserClassification
                 from result in getSubCategorized(input)
                 select result
             );
-    }
-    
-    static Eff<ClassifyRT, Classification> classifyIncome(string s)
-    {
-        var category = s.Replace("income", "").Trim();
-        if (int.TryParse(category, out var index))
-        {
-            return selectCategory(index)
-                .Map(cat => (Classification) new Income(cat.Category, cat.LineItem));
-        }
-        return askE<ClassifyRT>().Map(rt => (Classification) new Income(new Category(category), rt.LineItem));
     }
     
     static Eff<ClassifyRT, Unit> log(string message) => askE<ClassifyRT>().Bind(c => c.Console.WriteLine(message));

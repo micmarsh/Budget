@@ -20,7 +20,7 @@ public interface IStorage
 
 public record ClassificationsState(
     DateTime Date,
-    Seq<Category> Categories,
+    Seq<CategorySelectOption> Categories,
     Set<Classification> OnDate);
 
 public interface IFileReads

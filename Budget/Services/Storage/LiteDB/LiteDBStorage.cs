@@ -17,8 +17,14 @@ public class LiteDBStorage : IStorage
         var mapper = BsonMapper.Global;
         mapper.RegisterType(serializeSeq<SubCategorized>(mapper), deserializeSeq<SubCategorized>(mapper));
         mapper.RegisterType(
-            serialize: c => new BsonDocument {["_id"] = c.Value},
-            deserialize: doc => new Category(doc["_id"].AsString)
+            serialize: c => new BsonDocument
+            {
+                ["_id"] = c.Category.Value,
+                [nameof(CategorySelectOption.IsIncome)] = c.IsIncome
+            },
+            deserialize: doc => new CategorySelectOption(
+                new Category(doc["_id"].AsString), 
+                doc[nameof(CategorySelectOption.IsIncome)].AsBoolean)
         );
     }
     
@@ -28,7 +34,7 @@ public class LiteDBStorage : IStorage
             Use: conn => IO.lift(() =>
             {
                 var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-                var catsColl = conn.GetCollection<Category>(nameof(Category));
+                var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
 
                 //todo need separate categories collection?
                 var lastDay = coll.Query()
@@ -54,12 +60,11 @@ public class LiteDBStorage : IStorage
                 var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
                 coll.Insert(new ClassificationDoc(_newObjectId(), classified.LineItem.Date, classified));
                 
-                var catsColl = conn.GetCollection<Category>(nameof(Category));
+                var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
                 var categories = classified switch
                 {
-                    Categorized categorized => [categorized.Category],
-                    Income income => [income.Category],
-                    SubClassifications subs => subs.Children.Map(c => c.Category),
+                    Categorized(var category, {Amount: var amount}) => [new CategorySelectOption(category, amount > 0)],
+                    SubClassifications subs => subs.Children.Map(c => new CategorySelectOption(c.Category, false)),
                     _ => throw Utilities.patternMatchError(classified)
                 };
                 catsColl.Upsert(categories);

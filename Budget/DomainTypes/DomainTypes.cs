@@ -2,7 +2,7 @@ using LanguageExt;
 
 namespace Budget;
 
-public sealed record Category(string Value, bool IsIncome = false);
+public sealed record Category(string Value);
 
 public abstract record Classification(LineItem LineItem) : IComparable<Classification>
 {
@@ -10,8 +10,6 @@ public abstract record Classification(LineItem LineItem) : IComparable<Classific
 };
 
 public sealed record Categorized(Category Category, LineItem LineItem) : Classification(LineItem);
-
-public sealed record Income(Category Category, LineItem LineItem) : Classification(LineItem);
 
 public sealed record SubClassifications : Classification
 {

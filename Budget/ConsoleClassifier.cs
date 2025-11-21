@@ -13,7 +13,7 @@ public static class ConsoleClassifier
         from _1 in UserClassification.classifyAll(state.Categories, state.LineItems)
         select unit;
 
-    public static Eff<Runtime, (Seq<Category> Categories, Seq<LineItem> LineItems)> restoreLastState(CsvInfo input) =>
+    public static Eff<Runtime, (Seq<CategorySelectOption> Categories, Seq<LineItem> LineItems)> restoreLastState(CsvInfo input) =>
         from rt in askE<Runtime>()
         from csvLines in rt.FileReads.GetFileText(input.FilePath).Map(Csv.ParseText)
         let parsedCsv = parseCsvLines(input, csvLines)
