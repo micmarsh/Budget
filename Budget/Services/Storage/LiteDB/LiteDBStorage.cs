@@ -61,13 +61,7 @@ public class LiteDBStorage : IStorage
                 coll.Insert(new ClassificationDoc(_newObjectId(), classified.LineItem.Date, classified));
                 
                 var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
-                var categories = classified switch
-                {
-                    Categorized(var category, {Amount: var amount}) => [new CategorySelectOption(category, amount > 0)],
-                    SubClassifications subs => subs.Children.Map(c => new CategorySelectOption(c.Category, false)),
-                    _ => throw Utilities.patternMatchError(classified)
-                };
-                catsColl.Upsert(categories);
+                catsColl.Upsert(CategorySelectOption.Create(classified));
                 return unit;
             }),
             Fin: conn => IO.lift(conn.Dispose)).As();

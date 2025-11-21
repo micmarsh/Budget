@@ -50,14 +50,8 @@ public static class UserClassification
         string.Join(Environment.NewLine, $"{lineItem.Description}: {lineItem.Amount:C} on {lineItem.Date:D}"
             .Cons(categories.Map((c, i) => $"  {i + 1}) {c.Category.Value}${(c.IsIncome ? " (Income)" : "")}")));
 
-    private static Seq<CategorySelectOption> addNewCategories(Classification @class, Seq<CategorySelectOption> cats) => 
-        @class switch
-        {
-            Categorized(var category, {Amount: var amount})  => new CategorySelectOption(category, amount > 0).Cons(cats).Distinct(),
-            SubClassifications subs => subs.Children.Map(c => new CategorySelectOption(c.Category, false)) // this needs to be validated elsewhere
-                .Concat(cats).Distinct(),
-            _ => throw patternMatchError(@class)
-        };
+    private static Seq<CategorySelectOption> addNewCategories(Classification @class, Seq<CategorySelectOption> cats) =>
+        CategorySelectOption.Create(@class).Concat(cats).Distinct();
 
     static Eff<ClassifyRT, Classification> selectCategory(string input) =>
         parseInt(input)
