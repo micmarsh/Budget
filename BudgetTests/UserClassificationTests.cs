@@ -27,37 +27,36 @@ public class UserClassificationTests
     public void classifyAll_basicTest()
     {
         var expectedOutput = Seq(
-@"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+@"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
+  3) Car",
 // input: two blank spaces
 "Please enter a valid (non-empty) value",
-@"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+@"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
+  3) Car",
 // select 2/"Food"
-@"Progressive Insurance: $800.00 on Thursday, November 20, 2025
+@"Progressive Insurance: -$800.00 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
+  3) Car",
 // enter "* House 400"
 "$400.00 remaining to classify",
 // enter "3 200"
 "$200.00 remaining to classify",
 // enter "* Motorcycle 200" (exercising optional bullet points)"
-@"Stuff: $10.00 on Thursday, November 20, 2025
+@"Stuff: -$10.00 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
   3) Car
-  4) Work (Income)
-  5) House
-  6) Motorcycle"
-// enter "income Interest Payment"
+  4) House
+  5) Motorcycle"
 );
 
         var console = new TestConsole([
@@ -65,8 +64,7 @@ public class UserClassificationTests
             "2",
             "* House 400",
             "3 200",
-            "* Motorcycle 200",
-            "income Interest Payment"
+            "* Motorcycle 200"
         ]);
         
         var _ = UserClassification.classifyAll(Categories, LineItems)
@@ -93,11 +91,11 @@ public class UserClassificationTests
     public void classify_applySubClassifications_ShouldEnforceTotals()
     {
         var expectedOutput = Seq(
-            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+            @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
+  3) Car",
             // enter "* 2 11.22"
             "$12.10 remaining to classify",
             // enter "* Outdoors 10"
@@ -150,29 +148,29 @@ public class UserClassificationTests
     public void classify_selectCategory_ShouldHandleCancellation()
     {
         var expectedOutput = Seq(
-            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+            @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
+  3) Car",
                 $"Please select a number between 1 and {Categories.Count}",
                 $"Please select a number between 1 and {Categories.Count}",
                 $"Please select a number between 1 and {Categories.Count}",
                 // "cancel"
                 "Previous in-progress classification cancelled",
-                @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+                @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
+  3) Car",
                 $"Please select a number between 1 and {Categories.Count}",
             // "cancel with extra text"
                 "Previous in-progress classification cancelled",
-                @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+                @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)"
+  3) Car"
         );
         
         var console = new TestConsole([
@@ -199,51 +197,51 @@ public class UserClassificationTests
     public void classify_cancellation_ShouldCoverEverythingNeeded()
     {
         var expectedOutput = Seq(
-            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+            @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
+  3) Car",
             // -9
             $"Please select a number between 1 and {Categories.Count}",
             // "cancel"
             "Previous in-progress classification cancelled",
-            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+            @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
+  3) Car",
             // enter "* 2 11.22"
             "$12.10 remaining to classify",
             // enter "* Outdoors 10"
             "$2.10 remaining to classify",
             // "cancel"
             "Previous in-progress classification cancelled",
-            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+            @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
+  3) Car",
             // enter "* 2 11.22"
             "$12.10 remaining to classify",
             // "* 54433 12.10"
             $"Please select a number between 1 and {Categories.Count}",
             // "cancel"
             "Previous in-progress classification cancelled",
-            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+            @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)",
-            // "income 6"
+  3) Car",
+            // "6"
             $"Please select a number between 1 and {Categories.Count}",
             // "cancel"
             "Previous in-progress classification cancelled",
-            @"Frank's POS Charge: $23.32 on Thursday, November 20, 2025
+            @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
+(Spending)
   1) Almsgiving
   2) Food
-  3) Car
-  4) Work (Income)"
+  3) Car"
             //"Other"
         );
         
@@ -256,7 +254,7 @@ public class UserClassificationTests
             "* 2 11.22",
             "* 54433 12.10",
             "cancel",
-            "income 6",
+            "6",
             "cancel",
             "Other"
         ]);
@@ -270,19 +268,41 @@ public class UserClassificationTests
     }
     
     [Fact]
-    public void classify_income_ShouldAllowSelectingCategories()
+    public void classify_income_ShouldFilterCategories()
     {
-        var console = new TestConsole(["4", "Rebate"]);
-
-        var lineItems = Seq(new LineItem("PAYCHECK", 1000M, DateTime.Now),
-            new LineItem("REBATE", 300M, DateTime.Now));
-
-        var results = lineItems.TraverseM(lineItem => testClassify(Categories, lineItem))
-            .Map(cs => cs.Map(c => (Categorized)c))
-            .RunUnsafe(console);
+        var expectedOutput = Seq(
+            @"PAYCHECK: $1000.00 on Thursday, November 20, 2025
+(Income)
+  1) Work",
+            // enter "1",
+            @"MENARDS REBATE: $300.00 on Thursday, November 20, 2025
+(Income)
+  1) Work",
+            // enter "Rebate"
+            @"Food Store: -$123.00 on Thursday, November 20, 2025
+(Spending)
+  1) Almsgiving
+  2) Food
+  3) Car",
+            // "Groceries"
+            @"Cash: $1.00 on Thursday, November 20, 2025
+(Income)
+  1) Work
+  2) Rebate"
+            // enter "Found on Sidewalk"
+        );
         
-        Assert.Equal("Work", results[0].Category.Value);
-        Assert.Equal("Rebate", results[1].Category.Value);
+        var console = new TestConsole(["1", "Rebate", "Groceries", "Found on Sidewalk"]);
+
+        var lineItems = Seq(new LineItem("PAYCHECK", 1000M, TestDate),
+            new LineItem("MENARDS REBATE", 300M, TestDate),
+            new LineItem("Food Store", -123, TestDate), 
+            new LineItem("Cash", 1, TestDate));
+
+        var _ = UserClassification.classifyAll(Categories, lineItems)
+            .RunUnsafe(ConsoleOnly(console));
+
+        console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
     }
 
     private static Runtime ConsoleOnly(IConsole c) => new (new NoopFile(), new NoopStorage(), c);

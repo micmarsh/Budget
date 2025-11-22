@@ -11,13 +11,19 @@ public static class UserClassification
     public static Eff<Runtime, Unit> classifyAll(Seq<CategorySelectOption> categories, Seq<LineItem> lineItems) =>
         // Need "FoldBack" in order to stack actions in correct order? Is this a bug?
         lineItems.FoldBackM(categories, (cats, lineItem) =>
-                from @class in classify.CoMap((Runtime rt) => new ClassifyRT(rt.Console, cats, lineItem))
+                from @class in classify.CoMap(getClassifyRuntime(cats, lineItem))
                 from store in asks((Runtime rt) => rt.Storage)
                 from _ in store.Save(@class)
                 select addNewCategories(@class, cats))
             .IgnoreF()
             .As();
-    
+
+    private static Func<Runtime, ClassifyRT> getClassifyRuntime(Seq<CategorySelectOption> cats, LineItem lineItem)
+    {
+        //todo filter categories! It's so simple!
+        return rt => new ClassifyRT(rt.Console, cats, lineItem);
+    }
+
     /// <summary>
     /// Public for testing only
     /// </summary>
