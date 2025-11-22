@@ -22,7 +22,7 @@ public sealed record SubClassifications : Classification
     }
 
     public static Option<SubClassifications> New(Seq<SubCategorized> children, LineItem lineItem)
-        => lineItem.Amount == children.Map(x => x.Amount).Sum(x => x) ?
+        => Math.Abs(lineItem.Amount) == children.Map(x => x.Amount).Sum(Math.Abs) ?
             new SubClassifications(children, lineItem) :
             Option<SubClassifications>.None;
 }

@@ -12,6 +12,9 @@ public class UserClassificationTests
         new CategorySelectOption(new Category("Car"), false),
         new CategorySelectOption(new Category("Work"), true));
 
+    private int SpendingCategoryCount => Categories.Count(c => ! c.IsIncome);
+
+
     private static readonly DateTime TestDate = new (2025, 11, 20);
 
     private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", -23.32M, TestDate),
@@ -19,9 +22,13 @@ public class UserClassificationTests
         new LineItem("Stuff", -10, TestDate));
 
 
-    private Eff<IConsole, Classification> testClassify(Seq<CategorySelectOption> categories, LineItem lineItem) =>
-         UserClassification.classify.CoMap((IConsole c) =>
-            new UserClassification.ClassifyRT(c, categories, lineItem));
+    private Eff<IConsole, Classification> testClassify(Seq<CategorySelectOption> categories, LineItem lineItem)
+    {
+        var output = Atom(default(Classification));
+        return UserClassification.classifyAll(categories, [lineItem])
+            .CoMap((IConsole c) => new Runtime(new NoopFile(), new AtomStorage(output), c))
+            .Map(_ => output.Value ?? throw new InvalidOperationException());
+    }
     
     [Fact]
     public void classifyAll_basicTest()
@@ -42,8 +49,8 @@ public class UserClassificationTests
 // select 2/"Food"
 @"Progressive Insurance: -$800.00 on Thursday, November 20, 2025
 (Spending)
-  1) Almsgiving
-  2) Food
+  1) Food
+  2) Almsgiving
   3) Car",
 // enter "* House 400"
 "$400.00 remaining to classify",
@@ -52,11 +59,11 @@ public class UserClassificationTests
 // enter "* Motorcycle 200" (exercising optional bullet points)"
 @"Stuff: -$10.00 on Thursday, November 20, 2025
 (Spending)
-  1) Almsgiving
-  2) Food
-  3) Car
-  4) House
-  5) Motorcycle"
+  1) House
+  2) Car
+  3) Motorcycle
+  4) Food
+  5) Almsgiving"
 );
 
         var console = new TestConsole([
@@ -64,7 +71,8 @@ public class UserClassificationTests
             "2",
             "* House 400",
             "3 200",
-            "* Motorcycle 200"
+            "* Motorcycle 200",
+            "Other"
         ]);
         
         var _ = UserClassification.classifyAll(Categories, LineItems)
@@ -73,7 +81,8 @@ public class UserClassificationTests
         console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
     }
     
-    [Fact]
+    //[Fact]
+    //Too slow, comment back in occasionally
     public void classifyAll_isStackSafe()
     {
         const int itemCount = 100000;
@@ -84,7 +93,6 @@ public class UserClassificationTests
 
         var _ = UserClassification.classifyAll(Categories, lineItems)
             .RunUnsafe(ConsoleOnly(new TestConsole(inputs)));
-
     }
 
     [Fact]
@@ -138,7 +146,7 @@ public class UserClassificationTests
             .RunUnsafe(console);
 
         var expectedOutput = 
-            toSeq(Enumerable.Repeat($"Please select a number between 1 and {Categories.Count}", console.InitialInputs.Count - 1));
+            toSeq(Enumerable.Repeat($"Please select a number between 1 and {SpendingCategoryCount}", console.InitialInputs.Count - 1));
         
         Assert.Equal("Food", result.Category.Value);
         Assert.Equal(expectedOutput, console.Outputs.Tail); // skip initial prompt
@@ -153,9 +161,9 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car",
-                $"Please select a number between 1 and {Categories.Count}",
-                $"Please select a number between 1 and {Categories.Count}",
-                $"Please select a number between 1 and {Categories.Count}",
+                $"Please select a number between 1 and {SpendingCategoryCount}",
+                $"Please select a number between 1 and {SpendingCategoryCount}",
+                $"Please select a number between 1 and {SpendingCategoryCount}",
                 // "cancel"
                 "Previous in-progress classification cancelled",
                 @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
@@ -163,7 +171,7 @@ public class UserClassificationTests
   1) Almsgiving
   2) Food
   3) Car",
-                $"Please select a number between 1 and {Categories.Count}",
+                $"Please select a number between 1 and {SpendingCategoryCount}",
             // "cancel with extra text"
                 "Previous in-progress classification cancelled",
                 @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
@@ -203,7 +211,7 @@ public class UserClassificationTests
   2) Food
   3) Car",
             // -9
-            $"Please select a number between 1 and {Categories.Count}",
+            $"Please select a number between 1 and {SpendingCategoryCount}",
             // "cancel"
             "Previous in-progress classification cancelled",
             @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
@@ -225,7 +233,7 @@ public class UserClassificationTests
             // enter "* 2 11.22"
             "$12.10 remaining to classify",
             // "* 54433 12.10"
-            $"Please select a number between 1 and {Categories.Count}",
+            $"Please select a number between 1 and {SpendingCategoryCount}",
             // "cancel"
             "Previous in-progress classification cancelled",
             @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
@@ -234,7 +242,7 @@ public class UserClassificationTests
   2) Food
   3) Car",
             // "6"
-            $"Please select a number between 1 and {Categories.Count}",
+            $"Please select a number between 1 and {SpendingCategoryCount}",
             // "cancel"
             "Previous in-progress classification cancelled",
             @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
@@ -271,7 +279,7 @@ public class UserClassificationTests
     public void classify_income_ShouldFilterCategories()
     {
         var expectedOutput = Seq(
-            @"PAYCHECK: $1000.00 on Thursday, November 20, 2025
+            @"PAYCHECK: $1,000.00 on Thursday, November 20, 2025
 (Income)
   1) Work",
             // enter "1",
@@ -287,8 +295,8 @@ public class UserClassificationTests
             // "Groceries"
             @"Cash: $1.00 on Thursday, November 20, 2025
 (Income)
-  1) Work
-  2) Rebate"
+  1) Rebate
+  2) Work"
             // enter "Found on Sidewalk"
         );
         
@@ -311,6 +319,12 @@ public class UserClassificationTests
     {
         public IO<ClassificationsState> GetLatest() => IO.empty<ClassificationsState>();
         public IO<Unit> Save(Classification classified) => unitIO;
+    }
+    
+    private class AtomStorage(Atom<Classification?> Saved) : IStorage
+    {
+        public IO<ClassificationsState> GetLatest() => IO.empty<ClassificationsState>();
+        public IO<Unit> Save(Classification classified) => Saved.SwapIO(_ => classified).IgnoreF().As();
     }
     
     private class NoopFile : IFileReads

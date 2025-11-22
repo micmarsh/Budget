@@ -18,11 +18,13 @@ public static class UserClassification
             .IgnoreF()
             .As();
 
-    private static Func<Runtime, ClassifyRT> getClassifyRuntime(Seq<CategorySelectOption> cats, LineItem lineItem)
-    {
-        //todo filter categories! It's so simple!
-        return rt => new ClassifyRT(rt.Console, cats, lineItem);
-    }
+    private static Func<Runtime, ClassifyRT> getClassifyRuntime(Seq<CategorySelectOption> cats, LineItem lineItem) =>
+        rt => new ClassifyRT(rt.Console,
+            cats.Filter(cat => cat.IsIncome ?
+                lineItem.Amount > 0 :
+                lineItem.Amount < 0
+            )
+            , lineItem);
 
     /// <summary>
     /// Public for testing only
@@ -54,7 +56,8 @@ public static class UserClassification
 
     static string getMainPrompt(Seq<CategorySelectOption> categories, LineItem lineItem) =>
         string.Join(Environment.NewLine, $"{lineItem.Description}: {lineItem.Amount:C} on {lineItem.Date:D}"
-            .Cons(categories.Map((c, i) => $"  {i + 1}) {c.Category.Value}${(c.IsIncome ? " (Income)" : "")}")));
+            .Cons((lineItem.Amount > 0 ? "(Income)" : "(Spending)")
+                .Cons(categories.Map((c, i) => $"  {i + 1}) {c.Category.Value}"))));
 
     private static Seq<CategorySelectOption> addNewCategories(Classification @class, Seq<CategorySelectOption> cats) =>
         CategorySelectOption.Create(@class).Concat(cats).Distinct();
@@ -98,20 +101,21 @@ public static class UserClassification
         => askE<ClassifyRT>().Map(c => c.LineItem).Bind(lineItem => 
         {
             var total = all.Sum(c => c.Amount);
-            if (total > lineItem.Amount)
+            var amount = Math.Abs(lineItem.Amount);
+            if (total > amount)
             {
                 var previousItems = toSeq(all.SkipLast());
                 var previousTotal = previousItems.Sum(c => c.Amount);
                 return
-                    from _1 in log($"Last entry exceeded total by {total - lineItem.Amount:C} (only {lineItem.Amount - previousTotal:C} left), please try again")
+                    from _1 in log($"Last entry exceeded total by {total - amount:C} (only {amount - previousTotal:C} left), please try again")
                     from input in readLine
                     from result in applySubClassifications(input, previousItems)
                     select result;
             }
 
-            if (total < lineItem.Amount)
+            if (total < amount)
             {
-                return from _1 in log($"{lineItem.Amount - total:C} remaining to classify")
+                return from _1 in log($"{amount - total:C} remaining to classify")
                     from input in readLine
                     from result in applySubClassifications(input, all)
                     select result;
@@ -126,7 +130,7 @@ public static class UserClassification
         var partsTuple =
             from cat in parts.At(0)
             from amount in parts.At(1).Bind(parseDecimal)
-            select (CategoryString: cat, Amount: amount);
+            select (CategoryString: cat, Amount: Math.Abs(amount));
         return partsTuple.Match(
             tuple => parseInt(tuple.CategoryString)
                 .Match(selection => selectCategory(selection).Map(c => new SubCategorized(c.Category, tuple.Amount)),
