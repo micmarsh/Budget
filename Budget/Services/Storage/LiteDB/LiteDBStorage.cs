@@ -20,11 +20,11 @@ public class LiteDBStorage : IStorage
             serialize: c => new BsonDocument
             {
                 ["_id"] = $"{c.Category.Value}|{c.IsIncome}" ,
-                [nameof(CategorySelectOption.IsIncome)] = c.IsIncome
+                ["isIncome"] = c.IsIncome
             },
             deserialize: doc => new CategorySelectOption(
                 new Category(doc["_id"].AsString.Split('|')[0]), 
-                doc[nameof(CategorySelectOption.IsIncome)].AsBoolean)
+                doc["isIncome"].AsBoolean)
         );
     }
     

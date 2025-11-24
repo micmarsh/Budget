@@ -9,7 +9,7 @@ public record CategorySelectOption(Category Category, bool IsIncome)
         classification switch
         {
             Categorized(var category, { Amount: var amount }) => [new CategorySelectOption(category, amount > 0)],
-            SubClassifications subs => subs.Children.Map(c => new CategorySelectOption(c.Category, false)),
+            SubClassifications subs => subs.Children.Map(c => new CategorySelectOption(c.Category, subs.LineItem.Amount > 0)),
             _ => throw Utilities.patternMatchError(classification)
         };
 };
