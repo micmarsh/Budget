@@ -1,6 +1,5 @@
 using LanguageExt;
 using LiteDB;
-using static Budget.Services.Storage.LiteDB.CustomSerializers;
 using static LanguageExt.Prelude;
 
 namespace Budget.Services.Storage.LiteDB;
@@ -14,21 +13,10 @@ public class LiteDBStorage : IStorage
     {
         _connectionString = connectionString;
         _newObjectId = newObjectId;
-        var mapper = BsonMapper.Global;
-        mapper.RegisterType(serializeSeq<SubCategorized>(mapper), deserializeSeq<SubCategorized>(mapper));
-        mapper.RegisterType(
-            serialize: c => new BsonDocument
-            {
-                ["_id"] = $"{c.Category.Value}|{c.IsIncome}" ,
-                ["isIncome"] = c.IsIncome
-            },
-            deserialize: doc => new CategorySelectOption(
-                new Category(doc["_id"].AsString.Split('|')[0]), 
-                doc["isIncome"].AsBoolean)
-        );
+        RegisterSerializers.Register();
     }
-    
-    
+
+
     public IO<ClassificationsState> GetLatest() =>
         bracketIO(Acq: IO.lift(() => new LiteDatabase(_connectionString)),
             Use: conn => IO.lift(() =>
