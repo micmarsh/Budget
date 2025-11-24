@@ -121,7 +121,7 @@ public static class UserClassification
                     select result;
             }
 
-            return Pure(SubClassifications.New(all, lineItem).IfNone(() => throw new Exception("This should never happen")));
+            return Pure(new SubClassifications(all, lineItem));
         });
 
     private static Eff<ClassifyRT, SubCategorized> getSubCategorized(string s)

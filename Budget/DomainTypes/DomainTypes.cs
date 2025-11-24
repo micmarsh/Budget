@@ -11,21 +11,9 @@ public abstract record Classification(LineItem LineItem) : IComparable<Classific
 
 public sealed record Categorized(Category Category, LineItem LineItem) : Classification(LineItem);
 
-public sealed record SubClassifications : Classification
-{
-    // prevent recursive craziness, "Single" and "Multiple" subtypes are now clearly distinct
-    public Seq<SubCategorized> Children { get; }
+// totals have to be enforced by app logic? Technically this just shows need for "data storage object"
+public sealed record SubClassifications(Seq<SubCategorized> Children, LineItem LineItem) : Classification(LineItem);
 
-    private SubClassifications(Seq<SubCategorized> children, LineItem lineItem) : base(lineItem)
-    {
-        Children = children;
-    }
-
-    public static Option<SubClassifications> New(Seq<SubCategorized> children, LineItem lineItem)
-        => Math.Abs(lineItem.Amount) == children.Map(x => x.Amount).Sum(Math.Abs) ?
-            new SubClassifications(children, lineItem) :
-            Option<SubClassifications>.None;
-}
 public sealed record SubCategorized(Category Category, decimal Amount);
 
 
