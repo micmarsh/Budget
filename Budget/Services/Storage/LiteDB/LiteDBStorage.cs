@@ -19,11 +19,11 @@ public class LiteDBStorage : IStorage
         mapper.RegisterType(
             serialize: c => new BsonDocument
             {
-                ["_id"] = c.Category.Value,
+                ["_id"] = $"{c.Category.Value}|{c.IsIncome}" ,
                 [nameof(CategorySelectOption.IsIncome)] = c.IsIncome
             },
             deserialize: doc => new CategorySelectOption(
-                new Category(doc["_id"].AsString), 
+                new Category(doc["_id"].AsString.Split('|')[0]), 
                 doc[nameof(CategorySelectOption.IsIncome)].AsBoolean)
         );
     }

@@ -2,7 +2,15 @@ using LanguageExt;
 
 namespace Budget;
 
-public sealed record Category(string Value);
+public sealed record Category
+{
+    public readonly string Value;
+
+    public Category(string value)
+    {
+        Value = value;
+    }
+};
 
 public abstract record Classification(LineItem LineItem) : IComparable<Classification>
 {
