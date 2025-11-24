@@ -22,7 +22,6 @@ var fileReads = new FileReads();
 
 const string csvPath = "/home/michael/Downloads/Huntington_Delimited.csv";
 
-var hasher = SHA1.Create();
 var fileHash = fileReads.GetFileText(csvPath).Map(createHash).Run();
 
 var liteDbString = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + $"/BudgetDb.{fileHash}.db";
