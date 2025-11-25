@@ -2,15 +2,17 @@
 
 using BudgetImportExport.Export;
 using BudgetImportExport.Import;
+using LanguageExt;
+
+const string testCsv = "/home/michael/Documents/test.csv";
 
 // using var export = new LiteDBExport("/home/michael/Documents/BudgetDb.457069f285a9eba.db");
-using var export = new CsvExport("/home/michael/Documents/BudgetDb.457069f285a9eba.csv");
+// using var export = new CsvExport("/home/michael/Documents/BudgetDb.457069f285a9eba.csv");
+//
+// using var import = new CsvImport(testCsv);
+using var export = new CsvExport(testCsv);
+using var import = new LiteDBImport("/home/michael/Documents/test.db");
 
-using var import = new CsvImport("/home/michael/Documents/test.csv");
-
-foreach (var doc in  export.ExportClassifications())
-{
-    import.Write(doc);
-}
+import.WriteAll(export.ExportClassifications().ToSeq());
 
 Console.WriteLine("Hello, World!");

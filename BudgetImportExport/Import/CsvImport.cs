@@ -4,21 +4,38 @@ using LanguageExt;
 
 namespace BudgetImportExport.Import;
 
-public class CsvImport : IImport
+public class CsvImport : IImport<ClassificationDoc>, IBulkImport<ClassificationDoc>
 {
+    private readonly string _filePath;
 
     public CsvImport(string filePath)
     {
-        stream = new StreamWriter(filePath);
-        stream.WriteLine(FlatClassification.Header);
+        _filePath = filePath;
+        stream = new Lazy<StreamWriter>(() =>
+        {
+            var value = new StreamWriter(filePath);
+            value.WriteLine(FlatClassification.Header);
+            return value;
+        });
     }
 
-    private readonly StreamWriter stream;
+    private readonly Lazy<StreamWriter> stream;
 
 
     public Unit Write(ClassificationDoc doc)
     {
-        var rows = doc.Record switch
+        var rows = ConvertToRows(doc);
+
+        foreach (var row in rows)
+        {
+            stream.Value.WriteLine(row.ToString());
+        }
+
+        return Unit.Default;
+    }
+
+    private static Iterator<FlatClassification> ConvertToRows(ClassificationDoc doc) =>
+        doc.Record switch
         {
             Categorized({ Value: var category }, var (desc, amount, date)) =>
                 Iterator.singleton(new FlatClassification(doc.Id.ToString(), date, category, desc, amount)),
@@ -28,18 +45,21 @@ public class CsvImport : IImport
             _ => throw Utilities.patternMatchError(doc.Record)
         };
 
-        foreach (var row in rows)
-        {
-            stream.WriteLine(row.ToString());
-        }
-
-        return Unit.Default;
-    }
-
     public void Dispose()
     {
-        stream.Flush();
-        stream.Close();
-        stream.Dispose();
+        stream.Value.Flush();
+        stream.Value.Close();
+        stream.Value.Dispose();
+    }
+
+    public Unit WriteAll(Seq<ClassificationDoc> items)
+    {
+        File.WriteAllText(_filePath, string.Join(Environment.NewLine, 
+            FlatClassification.Header.Cons(items
+                .Bind(item => ConvertToRows(item).ToSeq())
+                .Map(row => row.ToString())
+                .AsEnumerable()
+            )));
+        return Unit.Default;
     }
 }

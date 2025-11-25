@@ -3,7 +3,7 @@ using LanguageExt;
 
 namespace BudgetImportExport.Import;
 
-public interface IImport : IDisposable
+public interface IImport<T> : IDisposable
 {
-    Unit Write(ClassificationDoc doc);
+    Unit Write(T doc);
 }
