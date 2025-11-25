@@ -10,11 +10,13 @@ public static class UserClassification
 {
     public static Eff<Runtime, Unit> classifyAll(Seq<CategorySelectOption> categories, Seq<LineItem> lineItems) =>
         // Need "FoldBack" in order to stack actions in correct order? Is this a bug?
-        lineItems.FoldBackM(categories, (cats, lineItem) =>
-                from @class in classify.CoMap(getClassifyRuntime(cats, lineItem))
-                from store in asks((Runtime rt) => rt.Storage)
-                from _ in store.Save(@class)
-                select addNewCategories(@class, cats))
+        lineItems.FoldBackM((Categories: categories, Remaining: lineItems.Length), (state, lineItem) =>
+                from rt in askE<Runtime>()
+                // part of "auto-classify"? Don't want to break tests quite yet
+                //from _1 in rt.Console.WriteLine($"{state.Remaining} items left to classify")
+                from @class in classify.CoMap(getClassifyRuntime(state.Categories, lineItem))
+                from _ in rt.Storage.Save(@class)
+                select (addNewCategories(@class, state.Categories), state.Remaining - 1))
             .IgnoreF()
             .As();
 
@@ -44,7 +46,7 @@ public static class UserClassification
     static Eff<ClassifyRT, Classification> classifyFromInput(string input) =>
         cond([
                 (string.IsNullOrWhiteSpace(input), retry("Please enter a valid (non-empty) value")),
-                (parseInt(input).IsSome, selectCategory(input)),
+                (parseInt(input).IsSome, selectCategory(input).Map(c => (Classification)c)),
                 (input.StartsWith('*'), applySubClassifications(input)),
                 (input.Equals("cancel"), retry("Nothing to cancel"))
             ], askE<ClassifyRT>().Map(rt => (Classification) new Categorized(new Category(input.Trim()), rt.LineItem)))
@@ -62,29 +64,32 @@ public static class UserClassification
     private static Seq<CategorySelectOption> addNewCategories(Classification @class, Seq<CategorySelectOption> cats) =>
         CategorySelectOption.Create(@class).Concat(cats).Distinct();
 
-    static Eff<ClassifyRT, Classification> selectCategory(string input) =>
-        parseInt(input)
-            .Match(selectCategory, () => reselectCategory)
-            .Map(c => (Classification)c)
-            .As();
-    
-    static Eff<ClassifyRT, Categorized> selectCategory(int index) =>
+    static Eff<ClassifyRT, Categorized> selectCategory(string input) =>
         from rt in askE<ClassifyRT>()
         let cats = rt.Categories
-        from result in index< 1 || index > cats.Count ? 
-            reselectCategory : 
-            Pure(new Categorized(cats[index - 1].Category, rt.LineItem))
-        select result;
-    
-    
-    static readonly Eff<ClassifyRT, Categorized> reselectCategory =
-        from rt in askE<ClassifyRT>()
-        from _1 in log($"Please select a number between 1 and {rt.Categories.Count}")
-        from selection in readLine
-        from _2 in guardNotCancelled(selection)
-        from result in int.TryParse(selection, out var index)
-            ? selectCategory(index)
-            : reselectCategory
+        from index in readValue(input, parseBetween1And(cats.Count), $"Please select a number between 1 and {cats.Count}")
+        select new Categorized(cats[index - 1].Category, rt.LineItem);
+
+
+    static Func<string, Option<int>> parseBetween1And(int max) =>
+        str => parseInt(str).Filter(i => i >= 1 && i <= max);
+
+    // could just use IHasConsole or something doesn't care about lineItem, etc.
+    static Eff<ClassifyRT, A> readValue<A>(string read, Func<string, Option<A>> parse, string retryPrompt) =>
+        readValue(IO.pure(read), parse, retryPrompt);
+
+    static Eff<ClassifyRT, A> readValue<A>(IO<string> read, Func<string, Option<A>> parse, string retryPrompt) =>
+        from line in read
+        from _1 in guardNotCancelled(line)
+        from result in parse(line).Match(
+            a => Pure(a),
+            () =>
+                from _2 in log(retryPrompt)
+                // this could be less hacky if whole thing was more general, but oh well
+                from rt in askE<ClassifyRT>()
+                from r in readValue(readLine.RunIO(rt), parse, retryPrompt)
+                select r
+        )
         select result;
     
     static Eff<ClassifyRT, Classification> applySubClassifications(string s) =>
@@ -124,32 +129,30 @@ public static class UserClassification
             return Pure(new SubClassifications(all, lineItem));
         });
 
-    private static Eff<ClassifyRT, SubCategorized> getSubCategorized(string s)
+    private static Eff<ClassifyRT, SubCategorized> getSubCategorized(string s) =>
+        from tuple in readValue(s, parseSubCategoryParts, $"Incorrectly formatted subcategory '{s}', please try again")
+        from result in parseInt(tuple.CategoryString)
+            .Match(_ => selectCategory(tuple.CategoryString)
+                    .Map(c => new SubCategorized(c.Category, tuple.Amount)),
+                () => Pure(new SubCategorized(new Category(tuple.CategoryString), tuple.Amount)))
+        select result;
+
+    private static Option<(string CategoryString, decimal Amount)> parseSubCategoryParts(string str)
     {
-        var parts = toSeq(s.Replace("*", "").Trim().Split(" ").Select(s1=> s1.Trim()));
+        var parts = toSeq(str.Replace("*", "").Trim().Split(" ").Select(s1=> s1.Trim()));
         var partsTuple =
             from cat in parts.At(0)
             from amount in parts.At(1).Bind(parseDecimal)
             select (CategoryString: cat, Amount: Math.Abs(amount));
-        return partsTuple.Match(
-            tuple => parseInt(tuple.CategoryString)
-                .Match(selection => selectCategory(selection).Map(c => new SubCategorized(c.Category, tuple.Amount)),
-                    () => Pure(new SubCategorized(new Category(tuple.CategoryString), tuple.Amount))),
-            () => 
-                from _1 in log($"Incorrectly formatted subcategory '{s}', please try again")
-                from input in readLine
-                from _2 in guardNotCancelled(input) // didn't anticipate this!
-                from result in getSubCategorized(input)
-                select result
-            );
+        return partsTuple;
     }
-    
+
     static Eff<ClassifyRT, Unit> log(string message) => askE<ClassifyRT>().Bind(c => c.Console.WriteLine(message));
 
     static readonly Eff<ClassifyRT, string> readLine = askE<ClassifyRT>().Bind(c => c.Console.ReadLine());
 
     private const int StateCancelledCode = 345;
 
-    static Eff<ClassifyRT, Unit> guardNotCancelled(string input) =>
+    static IO<Unit> guardNotCancelled(string input) =>
         input.StartsWith("cancel") ? Fail(Error.New(StateCancelledCode, "state cancelled")) : Pure(unit);
 }
