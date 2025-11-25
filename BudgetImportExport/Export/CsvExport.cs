@@ -12,6 +12,7 @@ public class CsvExport(string filePath) : IExport
             Csv.ParseFile(filePath)
                 .Run()
                 .Lines
+                .Filter(line => line is ValidCsvLine)
                 .GroupBy(line => line.Fields[nameof(FlatClassification.DbId)])
                 .Select(g => g.Count() == 1 ? getCategorized(g.First()) : getSubclassifications(g.AsEnumerable()))
         );
