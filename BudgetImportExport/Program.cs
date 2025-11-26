@@ -6,13 +6,21 @@ using LanguageExt;
 
 const string testCsv = "/home/michael/Documents/test.csv";
 
-// using var export = new LiteDBExport("/home/michael/Documents/BudgetDb.457069f285a9eba.db");
-// using var export = new CsvExport("/home/michael/Documents/BudgetDb.457069f285a9eba.csv");
-//
-// using var import = new CsvImport(testCsv);
-using var export = new CsvExport(testCsv);
-using var import = new LiteDBImport("/home/michael/Documents/test.db");
+const string realDb = "/home/michael/Documents/BudgetDb.457069f285a9eba.db";
 
-import.WriteAll(export.ExportClassifications().ToSeq());
+using var export = new LiteDBExport(realDb);
+// using var export = new CsvExport(testCsv);
+//
+// using var import = new LiteDBImport(realDb);
+// using var export = new CsvExport(testCsv);
+// using var import = new LiteDBImport("/home/michael/Documents/test.db");
+using var import = new CsvImport(testCsv);
+
+foreach (var item in export.ExportClassifications())
+{
+ import.Write(item);
+}
+
+// import.WriteAll(export.ExportClassifications().ToSeq());
 
 Console.WriteLine("Hello, World!");

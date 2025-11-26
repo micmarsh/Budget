@@ -8,7 +8,9 @@ namespace BudgetImportExport.Import;
 public class LiteDBImport(string DbFilePath) : IImport<ClassificationDoc>, IBulkImport<ClassificationDoc>
 {
     private LiteDatabase db = new (DbFilePath);
-
+    
+    static LiteDBImport() => RegisterSerializers.Register();
+    
     public void Dispose() => db.Dispose();
     public Unit Write(ClassificationDoc doc)
     {
