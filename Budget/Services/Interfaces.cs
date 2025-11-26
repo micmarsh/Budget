@@ -23,6 +23,12 @@ public interface IStorage
    // querying for all is for later!
 }
 
+public interface IAutoClassifierStorage
+{
+    IO<Unit> Save(string description, Category category);
+    IO<Seq<(string Description, Category Category)>> GetAll();
+}
+
 public record ClassificationsState(
     DateTime Date,
     Seq<CategorySelectOption> Categories,

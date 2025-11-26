@@ -4,7 +4,7 @@ using static LanguageExt.Prelude;
 
 namespace Budget.Services.Storage.LiteDB;
 
-public class LiteDBStorage : IStorage
+public class LiteDBStorage : IStorage, IAutoClassifierStorage
 {
     private readonly string _connectionString;
     private readonly Func<ObjectId> _newObjectId;
@@ -42,17 +42,39 @@ public class LiteDBStorage : IStorage
             Fin: conn => IO.lift(conn.Dispose)).As();
 
     public IO<Unit> Save(Classification classified) =>
-        bracketIO(Acq: IO.lift(() => new LiteDatabase(_connectionString)),
-            Use: conn => IO.lift(() =>
+        IO.lift(() =>
+        {
+            using var conn = new LiteDatabase(_connectionString);
+            var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
+            coll.Insert(new ClassificationDoc(_newObjectId(), classified.LineItem.Date, classified));
+
+            var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
+            catsColl.Upsert(CategorySelectOption.Create(classified));
+            return unit;
+        });
+
+    public IO<Unit> Save(string description, Category category) =>
+        IO.lift(() =>
+        {
+            using var db = new LiteDatabase(_connectionString);
+            var coll = db.GetCollection("AutoClassifications");
+            coll.Upsert(new BsonDocument
             {
-                var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-                coll.Insert(new ClassificationDoc(_newObjectId(), classified.LineItem.Date, classified));
-                
-                var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
-                catsColl.Upsert(CategorySelectOption.Create(classified));
-                return unit;
-            }),
-            Fin: conn => IO.lift(conn.Dispose)).As();
+                ["_id"] = description,
+                ["category"] = category.Value
+            });
+            return unit;
+        });
+
+    public IO<Seq<(string Description, Category Category)>> GetAll() =>
+        IO.lift(() =>
+        {
+            using var db = new LiteDatabase(_connectionString);
+            var coll = db.GetCollection("AutoClassifications");
+            return toSeq(coll.Find(_ => true))
+                .Map(doc => (doc["_id"].AsString, new Category(doc["category"].AsString)))
+                .Strict();
+        });
 }
 
 // Basically some repl code
