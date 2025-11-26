@@ -3,12 +3,17 @@ using LanguageExt.Common;
 
 namespace Budget;
 
-public record Runtime(IFileReads FileReads, IStorage Storage, IConsole Console);
+public record Runtime(IFileReads FileReads, IStorage Storage, IConsole Console) : IHasConsole;
 
 public interface IConsole
 {
     IO<string> ReadLine();
     IO<Unit> WriteLine(string message);
+}
+
+public interface IHasConsole
+{
+    IConsole Console { get; }
 }
 
 public interface IStorage

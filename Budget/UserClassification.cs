@@ -8,17 +8,33 @@ namespace Budget;
 
 public static class UserClassification
 {
-    public static Eff<Runtime, Unit> classifyAll(Seq<CategorySelectOption> categories, Seq<LineItem> lineItems) =>
+    public static Eff<Runtime, Unit> classifyAll(Seq<CategorySelectOption> categories, Seq<LineItem> lineItems)
+    {
+        var cache = Atom(HashMap<string, Category>());
         // Need "FoldBack" in order to stack actions in correct order? Is this a bug?
-        lineItems.FoldBackM((Categories: categories, Remaining: lineItems.Length), (state, lineItem) =>
+        return lineItems.FoldBackM((Categories: categories, Remaining: lineItems.Length), (state, lineItem) =>
                 from rt in askE<Runtime>()
-                // part of "auto-classify"? Don't want to break tests quite yet
-                //from _1 in rt.Console.WriteLine($"{state.Remaining} items left to classify")
-                from @class in classify.CoMap(getClassifyRuntime(state.Categories, lineItem))
+                
+                from _1 in rt.Console.WriteLine($"{state.Remaining} items left to classify")
+                from @class in classifyWithAuto(cache).CoMap(getClassifyRuntime(state.Categories, lineItem))
+                from _2 in addToCache(@class, cache)
+                
+                // from @class in classify.CoMap(getClassifyRuntime(state.Categories, lineItem))
                 from _ in rt.Storage.Save(@class)
                 select (addNewCategories(@class, state.Categories), state.Remaining - 1))
             .IgnoreF()
             .As();
+    }
+
+    private static Eff<Runtime, Unit> addToCache(Classification @class,
+        Atom<HashMap<string, Category>> autoClassifyCache) =>
+        from shouldAdd in readValue<Runtime, bool>("", parseBool, "Use for auto-classify? (true/false)")
+        from _1 in when(shouldAdd, autoClassifyCache.SwapIO(addDescriptionCats(@class)).IgnoreF()).As()
+        select unit;
+
+    private static Func<HashMap<string, Category>, HashMap<string, Category>> addDescriptionCats(Classification @class) =>
+        map => CategorySelectOption.Create(@class).Map(c => c.Category)
+            .Fold(map, (m, cat) => m.Add(@class.LineItem.Description, cat));
 
     private static Func<Runtime, ClassifyRT> getClassifyRuntime(Seq<CategorySelectOption> cats, LineItem lineItem) =>
         rt => new ClassifyRT(rt.Console,
@@ -31,7 +47,7 @@ public static class UserClassification
     /// <summary>
     /// Public for testing only
     /// </summary>
-    public sealed record ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem);
+    public sealed record ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem) : IHasConsole;
 
     /// <summary>
     /// Public for testing only
@@ -39,9 +55,21 @@ public static class UserClassification
     public static readonly Eff<ClassifyRT, Classification> classify =
         from rt in askE<ClassifyRT>()
         from _1 in log(getMainPrompt(rt.Categories, rt.LineItem))
-        from input in readLine
+        from input in readLine()
         from result in classifyFromInput(input)
         select result;
+
+    /// <summary>
+    /// Public for testing only
+    /// </summary>
+    public static Eff<ClassifyRT, Classification> classifyWithAuto(HashMap<string, Category> autoCategorizer) =>
+        from lineItem in askE<ClassifyRT>().Map(rt => rt.LineItem)
+        from result in autoCategorizer.Find(lineItem.Description).Match(category =>
+                Pure((Classification)new Categorized(category, lineItem)),
+            () => classify
+        )
+        select result;
+
     
     static Eff<ClassifyRT, Classification> classifyFromInput(string input) =>
         cond([
@@ -67,27 +95,33 @@ public static class UserClassification
     static Eff<ClassifyRT, Categorized> selectCategory(string input) =>
         from rt in askE<ClassifyRT>()
         let cats = rt.Categories
-        from index in readValue(input, parseBetween1And(cats.Count), $"Please select a number between 1 and {cats.Count}")
+        from index in readValue<ClassifyRT, int>(input, parseBetween1And(cats.Count), $"Please select a number between 1 and {cats.Count}")
         select new Categorized(cats[index - 1].Category, rt.LineItem);
 
 
     static Func<string, Option<int>> parseBetween1And(int max) =>
         str => parseInt(str).Filter(i => i >= 1 && i <= max);
 
-    // could just use IHasConsole or something doesn't care about lineItem, etc.
     static Eff<ClassifyRT, A> readValue<A>(string read, Func<string, Option<A>> parse, string retryPrompt) =>
-        readValue(IO.pure(read), parse, retryPrompt);
+        readValue<ClassifyRT, A>(read, parse, retryPrompt);
 
-    static Eff<ClassifyRT, A> readValue<A>(IO<string> read, Func<string, Option<A>> parse, string retryPrompt) =>
+    
+    static Eff<RT, A> readValue<RT, A>(string read, Func<string, Option<A>> parse, string retryPrompt)
+        where RT : IHasConsole
+        =>
+        readValue<RT, A>(IO.pure(read), parse, retryPrompt);
+
+    static Eff<RT, A> readValue<RT, A>(IO<string> read, Func<string, Option<A>> parse, string retryPrompt)
+        where RT : IHasConsole
+        =>
         from line in read
         from _1 in guardNotCancelled(line)
         from result in parse(line).Match(
             a => Pure(a),
             () =>
-                from _2 in log(retryPrompt)
-                // this could be less hacky if whole thing was more general, but oh well
-                from rt in askE<ClassifyRT>()
-                from r in readValue(readLine.RunIO(rt), parse, retryPrompt)
+                from _2 in log<RT>(retryPrompt)
+                from rt in askE<RT>()
+                from r in readValue<RT, A>(readLine<RT>().RunIO(rt), parse, retryPrompt)
                 select r
         )
         select result;
@@ -113,7 +147,7 @@ public static class UserClassification
                 var previousTotal = previousItems.Sum(c => c.Amount);
                 return
                     from _1 in log($"Last entry exceeded total by {total - amount:C} (only {amount - previousTotal:C} left), please try again")
-                    from input in readLine
+                    from input in readLine()
                     from result in applySubClassifications(input, previousItems)
                     select result;
             }
@@ -121,7 +155,7 @@ public static class UserClassification
             if (total < amount)
             {
                 return from _1 in log($"{amount - total:C} remaining to classify")
-                    from input in readLine
+                    from input in readLine()
                     from result in applySubClassifications(input, all)
                     select result;
             }
@@ -140,16 +174,23 @@ public static class UserClassification
     private static Option<(string CategoryString, decimal Amount)> parseSubCategoryParts(string str)
     {
         var parts = toSeq(str.Replace("*", "").Trim().Split(" ").Select(s1=> s1.Trim()));
-        var partsTuple =
+        return 
             from cat in parts.At(0)
             from amount in parts.At(1).Bind(parseDecimal)
             select (CategoryString: cat, Amount: Math.Abs(amount));
-        return partsTuple;
     }
 
-    static Eff<ClassifyRT, Unit> log(string message) => askE<ClassifyRT>().Bind(c => c.Console.WriteLine(message));
+    static Eff<ClassifyRT, Unit> log(string message) => log<ClassifyRT>(message);
 
-    static readonly Eff<ClassifyRT, string> readLine = askE<ClassifyRT>().Bind(c => c.Console.ReadLine());
+    private static Eff<ClassifyRT, string> readLine() => readLine<ClassifyRT>();
+    
+    static Eff<RT, Unit> log<RT>(string message)
+        where RT : IHasConsole
+        => askE<RT>().Bind(c => c.Console.WriteLine(message));
+
+    static Eff<RT, string> readLine<RT>() 
+        where RT : IHasConsole
+        => askE<RT>().Bind(c => c.Console.ReadLine());
 
     private const int StateCancelledCode = 345;
 
