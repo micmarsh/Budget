@@ -17,7 +17,6 @@ public static class UserClassification
                 
                 from _1 in rt.Console.WriteLine($"{state.Remaining} items left to classify")
                 from @class in classifyWithAuto(cache).CoMap(getClassifyRuntime(state.Categories, lineItem))
-                from _2 in addToCache(@class, cache)
                 
                 // from @class in classify.CoMap(getClassifyRuntime(state.Categories, lineItem))
                 from _ in rt.Storage.Save(@class)
@@ -26,12 +25,21 @@ public static class UserClassification
             .As();
     }
 
-    private static Eff<Runtime, Unit> addToCache(Classification @class,
-        Atom<HashMap<string, Category>> autoClassifyCache) =>
-        from shouldAdd in readValue<Runtime, bool>("", parseBool, "Use for auto-classify? (true/false)")
+    private static Eff<RT, Unit> addToCache<RT>(Classification @class,
+        Atom<HashMap<string, Category>> autoClassifyCache) 
+        where RT: IHasConsole
+        =>
+        from shouldAdd in readValue<RT, bool>("", parseBoolInput, "Use for auto-classify? (y/true/n/false)")
         from _1 in when(shouldAdd, autoClassifyCache.SwapIO(addDescriptionCats(@class)).IgnoreF()).As()
         select unit;
 
+    static Option<bool> parseBoolInput(string input) =>
+        parseBool(input)
+            .Catch((Unit _) => input.ToLower().StartsWith("n") ? false : 
+                input.ToLower().StartsWith("y") ? Some(true) : 
+                None)
+            .As();
+    
     private static Func<HashMap<string, Category>, HashMap<string, Category>> addDescriptionCats(Classification @class) =>
         map => CategorySelectOption.Create(@class).Map(c => c.Category)
             .Fold(map, (m, cat) => m.Add(@class.LineItem.Description, cat));
@@ -62,11 +70,13 @@ public static class UserClassification
     /// <summary>
     /// Public for testing only
     /// </summary>
-    public static Eff<ClassifyRT, Classification> classifyWithAuto(HashMap<string, Category> autoCategorizer) =>
+    public static Eff<ClassifyRT, Classification> classifyWithAuto(Atom<HashMap<string, Category>> autoCategorizer) =>
         from lineItem in askE<ClassifyRT>().Map(rt => rt.LineItem)
-        from result in autoCategorizer.Find(lineItem.Description).Match(category =>
+        from result in autoCategorizer.Value.Find(lineItem.Description).Match(category =>
                 Pure((Classification)new Categorized(category, lineItem)),
-            () => classify
+            () => from @class in classify
+                        from _1 in addToCache<ClassifyRT>(@class, autoCategorizer)
+                        select @class
         )
         select result;
 
