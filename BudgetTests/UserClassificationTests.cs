@@ -26,7 +26,7 @@ public class UserClassificationTests
     {
         var output = Atom(default(Classification));
         return UserClassification.classifyAll(categories, [lineItem])
-            .CoMap((IConsole c) => new Runtime(new NoopFile(), new AtomStorage(output), c))
+            .CoMap((IConsole c) => new Runtime(new NoopFile(), new AtomStorage(output), c, new NoopStorage()))
             .Map(_ => output.Value ?? throw new InvalidOperationException());
     }
     
@@ -313,12 +313,14 @@ public class UserClassificationTests
         console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
     }
 
-    private static Runtime ConsoleOnly(IConsole c) => new (new NoopFile(), new NoopStorage(), c);
+    private static Runtime ConsoleOnly(IConsole c) => new (new NoopFile(), new NoopStorage(), c, new NoopStorage());
 
-    private class NoopStorage : IStorage
+    private class NoopStorage : IStorage, IAutoClassifierStorage
     {
         public IO<ClassificationsState> GetLatest() => IO.empty<ClassificationsState>();
         public IO<Unit> Save(Classification classified) => unitIO;
+        public IO<Unit> Save(string description, Category category) => unitIO;
+        public IO<Option<Category>> Lookup(string description) => IO.pure(Option<Category>.None);
     }
     
     private class AtomStorage(Atom<Classification?> Saved) : IStorage

@@ -8,41 +8,43 @@ namespace Budget;
 
 public static class UserClassification
 {
-    public static Eff<Runtime, Unit> classifyAll(Seq<CategorySelectOption> categories, Seq<LineItem> lineItems)
-    {
-        var cache = Atom(HashMap<string, Category>());
+    public static Eff<Runtime, Unit> classifyAll(Seq<CategorySelectOption> categories, Seq<LineItem> lineItems) =>
         // Need "FoldBack" in order to stack actions in correct order? Is this a bug?
-        return lineItems.FoldBackM((Categories: categories, Remaining: lineItems.Length), (state, lineItem) =>
+        lineItems.FoldBackM((Categories: categories, Remaining: lineItems.Length), (state, lineItem) =>
                 from rt in askE<Runtime>()
                 
                 from _1 in rt.Console.WriteLine($"{state.Remaining} items left to classify")
-                from @class in classifyWithAuto(cache).CoMap(getClassifyRuntime(state.Categories, lineItem))
+                from @class in classifyWithAuto.CoMap(getClassifyRuntime(state.Categories, lineItem))
                 
                 // from @class in classify.CoMap(getClassifyRuntime(state.Categories, lineItem))
                 from _ in rt.Storage.Save(@class)
                 select (addNewCategories(@class, state.Categories), state.Remaining - 1))
             .IgnoreF()
             .As();
-    }
 
-    private static Eff<RT, Unit> addToCache<RT>(Classification @class,
-        Atom<HashMap<string, Category>> autoClassifyCache) 
-        where RT: IHasConsole
+    private static Eff<RT, Unit> saveAutoCategorized<RT>(Classification @class) 
+        where RT: IHasConsole, IHasAutoClassifierStorage
         =>
         from shouldAdd in readValue<RT, bool>("", parseBoolInput, "Use for auto-classify? (y/true/n/false)")
-        from _1 in when(shouldAdd, autoClassifyCache.SwapIO(addDescriptionCats(@class)).IgnoreF()).As()
+        from rt in askE<RT>()
+        from _2 in when(shouldAdd, getAutoClassifieds(@class)
+            .Traverse(c => rt.AutoClassifierStorage.Save(c.Description, c.Category))
+            .IgnoreF()).As()
         select unit;
 
     static Option<bool> parseBoolInput(string input) =>
-        parseBool(input)
-            .Catch((Unit _) => input.ToLower().StartsWith("n") ? false : 
+        parseBool(input) |
+            (input.ToLower().StartsWith("n") ? false : 
                 input.ToLower().StartsWith("y") ? Some(true) : 
-                None)
-            .As();
+                None);
     
     private static Func<HashMap<string, Category>, HashMap<string, Category>> addDescriptionCats(Classification @class) =>
-        map => CategorySelectOption.Create(@class).Map(c => c.Category)
-            .Fold(map, (m, cat) => m.Add(@class.LineItem.Description, cat));
+        map => map.Union(getAutoClassifieds(@class));
+
+    private static Seq<(string Description, Category Category)> getAutoClassifieds(Classification @class) =>
+        CategorySelectOption.Create(@class).Map(c => 
+            (@class.LineItem.Description, c.Category)
+        );
 
     private static Func<Runtime, ClassifyRT> getClassifyRuntime(Seq<CategorySelectOption> cats, LineItem lineItem) =>
         rt => new ClassifyRT(rt.Console,
@@ -50,12 +52,14 @@ public static class UserClassification
                 lineItem.Amount > 0 :
                 lineItem.Amount < 0
             )
-            , lineItem);
+            , lineItem,
+            rt.AutoClassifierStorage);
 
     /// <summary>
     /// Public for testing only
     /// </summary>
-    public sealed record ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem) : IHasConsole;
+    public sealed record ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem, IAutoClassifierStorage AutoClassifierStorage) 
+        : IHasConsole, IHasAutoClassifierStorage;
 
     /// <summary>
     /// Public for testing only
@@ -70,12 +74,15 @@ public static class UserClassification
     /// <summary>
     /// Public for testing only
     /// </summary>
-    public static Eff<ClassifyRT, Classification> classifyWithAuto(Atom<HashMap<string, Category>> autoCategorizer) =>
-        from lineItem in askE<ClassifyRT>().Map(rt => rt.LineItem)
-        from result in autoCategorizer.Value.Find(lineItem.Description).Match(category =>
+    public static readonly Eff<ClassifyRT, Classification> classifyWithAuto =
+        from rt in askE<ClassifyRT>()
+        let lineItem = rt.LineItem
+        from autoCategory in rt.AutoClassifierStorage.Lookup(lineItem.Description)
+        from result in autoCategory.Match(category =>
                 Pure((Classification)new Categorized(category, lineItem)),
             () => from @class in classify
-                        from _1 in addToCache<ClassifyRT>(@class, autoCategorizer)
+                        //todo should disable entirely with subcategories because will just auto-set last?
+                        from _1 in saveAutoCategorized<ClassifyRT>(@class)
                         select @class
         )
         select result;

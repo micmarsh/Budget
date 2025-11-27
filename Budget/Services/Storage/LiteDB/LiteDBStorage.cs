@@ -6,6 +6,7 @@ namespace Budget.Services.Storage.LiteDB;
 
 public class LiteDBStorage : IStorage, IAutoClassifierStorage
 {
+    private const string AutoClassificationsCollectionName = "AutoClassifications";
     private readonly string _connectionString;
     private readonly Func<ObjectId> _newObjectId;
 
@@ -56,7 +57,7 @@ public class LiteDBStorage : IStorage, IAutoClassifierStorage
         IO.lift(() =>
         {
             using var db = new LiteDatabase(_connectionString);
-            var coll = db.GetCollection("AutoClassifications");
+            var coll = db.GetCollection(AutoClassificationsCollectionName);
             coll.Upsert(new BsonDocument
             {
                 ["_id"] = description,
@@ -65,14 +66,14 @@ public class LiteDBStorage : IStorage, IAutoClassifierStorage
             return unit;
         });
 
-    public IO<Seq<(string Description, Category Category)>> GetAll() =>
+    public IO<Option<Category>> Lookup(string description) =>
         IO.lift(() =>
         {
             using var db = new LiteDatabase(_connectionString);
-            var coll = db.GetCollection("AutoClassifications");
-            return toSeq(coll.Find(_ => true))
-                .Map(doc => (doc["_id"].AsString, new Category(doc["category"].AsString)))
-                .Strict();
+            var coll = db.GetCollection(AutoClassificationsCollectionName);
+            return toSeq(coll.Find(doc => doc["_id"].AsString == description)) // FindOne or FindById
+                .Map(doc => new Category(doc["category"].AsString))
+                .Head;
         });
 }
 

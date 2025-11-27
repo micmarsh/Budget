@@ -26,6 +26,7 @@ var fileHash = fileReads.GetFileText(csvPath).Map(createHash).Run();
 
 var liteDbString = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + $"/BudgetDb.{fileHash}.db";
 
+var liteDbStorage = new LiteDBStorage(liteDbString, ObjectId.NewObjectId);
 ConsoleClassifier.Create(new CsvInfo(
     FilePath: csvPath,
     DescriptionField: "Payee Name",
@@ -33,6 +34,6 @@ ConsoleClassifier.Create(new CsvInfo(
     DateField: "Date",
     BackupDescription: "Memo"
 ))
-.RunUnsafe(new Runtime(fileReads, new LiteDBStorage(liteDbString, ObjectId.NewObjectId), new Console()));
+.RunUnsafe(new Runtime(fileReads, liteDbStorage, new Console(), liteDbStorage));
 
 System.Console.WriteLine("DONE");
