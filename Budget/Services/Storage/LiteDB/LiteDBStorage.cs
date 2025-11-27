@@ -18,28 +18,27 @@ public class LiteDBStorage : IStorage, IAutoClassifierStorage
 
 
     public IO<ClassificationsState> GetLatest() =>
-        bracketIO(Acq: IO.lift(() => new LiteDatabase(_connectionString)),
-            Use: conn => IO.lift(() =>
-            {
-                var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-                var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
+        IO.lift(() =>
+        {
+            using var conn = new LiteDatabase(_connectionString);
+            var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
+            var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
 
-                //todo need separate categories collection?
-                var lastDay = coll.Query()
-                    .OrderByDescending(c => c.DateTime)
-                    .Select(c => c.DateTime)
-                    .FirstOrDefault();
-                var lastClassifications = coll
-                    .Find(c => c.DateTime.Date == lastDay.Date)
-                    .Select(doc => doc.Record)
-                    .ToList();
-                return new ClassificationsState(
-                    lastDay,
-                    toSeq(catsColl.Find(_ => true).ToList()),
-                    toSet(lastClassifications)
-                    );
-            }),
-            Fin: conn => IO.lift(conn.Dispose)).As();
+            //todo need separate categories collection?
+            var lastDay = coll.Query()
+                .OrderByDescending(c => c.DateTime)
+                .Select(c => c.DateTime)
+                .FirstOrDefault();
+            var lastClassifications = coll
+                .Find(c => c.DateTime.Date == lastDay.Date)
+                .Select(doc => doc.Record)
+                .ToList();
+            return new ClassificationsState(
+                lastDay,
+                toSeq(catsColl.Find(_ => true).ToList()),
+                toSet(lastClassifications)
+            );
+        });
 
     public IO<Unit> Save(Classification classified) =>
         IO.lift(() =>
