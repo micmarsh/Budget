@@ -1,6 +1,6 @@
 namespace BudgetTests;
 
-public class LiteDBStorageTests
+public class LiteDbTests
 {
     
 }

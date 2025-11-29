@@ -315,7 +315,7 @@ public class UserClassificationTests
 
     private static Runtime ConsoleOnly(IConsole c) => new (new NoopFile(), new NoopStorage(), c, new NoopStorage());
 
-    private class NoopStorage : IStorage, IAutoClassifierStorage
+    private class NoopStorage : IStorage, IAutoClassifier
     {
         public IO<ClassificationsState> GetLatest() => IO.empty<ClassificationsState>();
         public IO<Unit> Save(Classification classified) => unitIO;

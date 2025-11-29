@@ -58,7 +58,7 @@ public static class UserClassification
     /// <summary>
     /// Public for testing only
     /// </summary>
-    public sealed record ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem, IAutoClassifierStorage AutoClassifierStorage) 
+    public sealed record ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem, IAutoClassifier AutoClassifier) 
         : IHasConsole, IHasAutoClassifierStorage;
 
     /// <summary>
@@ -77,7 +77,7 @@ public static class UserClassification
     public static readonly Eff<ClassifyRT, Classification> classifyWithAuto =
         from rt in askE<ClassifyRT>()
         let lineItem = rt.LineItem
-        from autoCategory in rt.AutoClassifierStorage.Lookup(lineItem.Description)
+        from autoCategory in rt.AutoClassifier.Lookup(lineItem.Description)
         from result in autoCategory.Match(category =>
                 Pure((Classification)new Categorized(category, lineItem)),
             () => from @class in classify

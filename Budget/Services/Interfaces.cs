@@ -3,12 +3,12 @@ using LanguageExt.Common;
 
 namespace Budget;
 
-public record Runtime(IFileReads FileReads, IStorage Storage, IConsole Console, IAutoClassifierStorage AutoClassifierStorage)
+public record Runtime(IFileReads FileReads, IStorage Storage, IConsole Console, IAutoClassifier AutoClassifierStorage)
     : IHasConsole, IHasAutoClassifierStorage;
 
 public interface IHasAutoClassifierStorage
 {
-    IAutoClassifierStorage AutoClassifierStorage { get; }
+    IAutoClassifier AutoClassifierStorage { get; }
 }
 
 public interface IConsole
@@ -29,7 +29,7 @@ public interface IStorage
    // querying for all is for later!
 }
 
-public interface IAutoClassifierStorage
+public interface IAutoClassifier
 {
     IO<Unit> Save(string description, Category category);
     IO<Option<Category>> Lookup(string description);

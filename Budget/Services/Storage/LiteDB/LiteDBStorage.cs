@@ -4,13 +4,13 @@ using static LanguageExt.Prelude;
 
 namespace Budget.Services.Storage.LiteDB;
 
-public class LiteDBStorage : IStorage, IAutoClassifierStorage
+public class LiteDb : IStorage, IAutoClassifier
 {
     private const string AutoClassificationsCollectionName = "AutoClassifications";
     private readonly string _connectionString;
     private readonly Func<ObjectId> _newObjectId;
 
-    public LiteDBStorage(string connectionString, Func<ObjectId> newObjectId)
+    public LiteDb(string connectionString, Func<ObjectId> newObjectId)
     {
         _connectionString = connectionString;
         _newObjectId = newObjectId;
@@ -52,6 +52,8 @@ public class LiteDBStorage : IStorage, IAutoClassifierStorage
             catsColl.Upsert(CategorySelectOption.Create(classified));
             return unit;
         });
+
+    private Atom<HashMap<string, Category>> AutoClassifyCache = Atom(LanguageExt.HashMap<string, Category>.Empty);
 
     public IO<Unit> Save(string description, Category category) =>
         IO.lift(() =>
