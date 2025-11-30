@@ -3,12 +3,12 @@ using LanguageExt.Common;
 
 namespace Budget;
 
-public record Runtime(IFileReads FileReads, IStorage Storage, IConsole Console, IAutoClassifier AutoClassifierStorage)
-    : IHasConsole, IHasAutoClassifierStorage;
+public record Runtime(IFileReads FileReads, IStorage Storage, IConsole Console, IAutoClassifier AutoClassifier)
+    : IHasConsole, IHasAutoClassifier;
 
-public interface IHasAutoClassifierStorage
+public interface IHasAutoClassifier
 {
-    IAutoClassifier AutoClassifierStorage { get; }
+    IAutoClassifier AutoClassifier { get; }
 }
 
 public interface IConsole

@@ -15,6 +15,13 @@ public class LiteDb : IStorage, IAutoClassifier
         _connectionString = connectionString;
         _newObjectId = newObjectId;
         RegisterSerializers.Register();
+        
+        using var db = new LiteDatabase(_connectionString);
+        var coll = db.GetCollection(AutoClassificationsCollectionName);
+        var saved = coll.Find(_ => true)
+            .Select(doc => (doc["_id"].AsString, new Category(doc["category"].AsString)))
+            .ToHashMap();
+        AutoClassifyCache.Swap(_ => saved);
     }
 
 
@@ -53,7 +60,7 @@ public class LiteDb : IStorage, IAutoClassifier
             return unit;
         });
 
-    private Atom<HashMap<string, Category>> AutoClassifyCache = Atom(LanguageExt.HashMap<string, Category>.Empty);
+    private readonly Atom<HashMap<string, Category>> AutoClassifyCache = Atom(LanguageExt.HashMap<string, Category>.Empty);
 
     public IO<Unit> Save(string description, Category category) =>
         IO.lift(() =>
@@ -65,18 +72,12 @@ public class LiteDb : IStorage, IAutoClassifier
                 ["_id"] = description,
                 ["category"] = category.Value
             });
+            AutoClassifyCache.Swap(cache => cache.Add(description, category));
             return unit;
         });
 
-    public IO<Option<Category>> Lookup(string description) =>
-        IO.lift(() =>
-        {
-            using var db = new LiteDatabase(_connectionString);
-            var coll = db.GetCollection(AutoClassificationsCollectionName);
-            return toSeq(coll.Find(doc => doc["_id"].AsString == description)) // FindOne or FindById
-                .Map(doc => new Category(doc["category"].AsString))
-                .Head;
-        });
+    public IO<Option<Category>> Lookup(string description) => 
+        AutoClassifyCache.ValueIO.Map(cache => cache.Find(description));
 }
 
 // Basically some repl code

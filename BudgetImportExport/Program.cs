@@ -29,9 +29,12 @@ const string realDb = "/home/michael/Documents/BudgetDb.457069f285a9eba.db";
 // Console.WriteLine("Hello, World!");
 
 using var liteDbDb = new LiteDatabase(realDb);
-using var export = new LiteDBExport(realDb);
+// using var export = new LiteDBExport(realDb);
+//
+// liteDbDb.GetCollection<CategorySelectOption>(nameof(CategorySelectOption)).DeleteAll();
+// liteDbDb.GetCollection<CategorySelectOption>(nameof(CategorySelectOption)).Upsert(export.ExportClassifications()
+//     .AsEnumerable()
+//     .SelectMany(c => CategorySelectOption.Create(c.Record)));
 
-liteDbDb.GetCollection<CategorySelectOption>(nameof(CategorySelectOption)).DeleteAll();
-liteDbDb.GetCollection<CategorySelectOption>(nameof(CategorySelectOption)).Upsert(export.ExportClassifications()
-    .AsEnumerable()
-    .SelectMany(c => CategorySelectOption.Create(c.Record)));
+var deleted = liteDbDb.GetCollection("AutoClassifications").DeleteMany(doc => doc["_id"].AsString == "SUBSTITUTE CHECK");
+System.Console.WriteLine(deleted);

@@ -23,12 +23,12 @@ public static class UserClassification
             .As();
 
     private static Eff<RT, Unit> saveAutoCategorized<RT>(Classification @class) 
-        where RT: IHasConsole, IHasAutoClassifierStorage
+        where RT: IHasConsole, IHasAutoClassifier
         =>
         from shouldAdd in readValue<RT, bool>("", parseBoolInput, "Use for auto-classify? (y/true/n/false)")
         from rt in askE<RT>()
         from _2 in when(shouldAdd, getAutoClassifieds(@class)
-            .Traverse(c => rt.AutoClassifierStorage.Save(c.Description, c.Category))
+            .Traverse(c => rt.AutoClassifier.Save(c.Description, c.Category))
             .IgnoreF()).As()
         select unit;
 
@@ -37,9 +37,6 @@ public static class UserClassification
             (input.ToLower().StartsWith("n") ? false : 
                 input.ToLower().StartsWith("y") ? Some(true) : 
                 None);
-    
-    private static Func<HashMap<string, Category>, HashMap<string, Category>> addDescriptionCats(Classification @class) =>
-        map => map.Union(getAutoClassifieds(@class));
 
     private static Seq<(string Description, Category Category)> getAutoClassifieds(Classification @class) =>
         CategorySelectOption.Create(@class).Map(c => 
@@ -53,13 +50,13 @@ public static class UserClassification
                 lineItem.Amount < 0
             )
             , lineItem,
-            rt.AutoClassifierStorage);
+            rt.AutoClassifier);
 
     /// <summary>
     /// Public for testing only
     /// </summary>
     public sealed record ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem, IAutoClassifier AutoClassifier) 
-        : IHasConsole, IHasAutoClassifierStorage;
+        : IHasConsole, IHasAutoClassifier;
 
     /// <summary>
     /// Public for testing only
