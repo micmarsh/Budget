@@ -22,15 +22,19 @@ public static class UserClassification
             .IgnoreF()
             .As();
 
-    private static Eff<RT, Unit> saveAutoCategorized<RT>(Classification @class) 
-        where RT: IHasConsole, IHasAutoClassifier
-        =>
-        from shouldAdd in readValue<RT, bool>("", parseBoolInput, "Use for auto-classify? (y/true/n/false)")
-        from rt in askE<RT>()
-        from _2 in when(shouldAdd, getAutoClassifieds(@class)
-            .Traverse(c => rt.AutoClassifier.Save(c.Description, c.Category))
-            .IgnoreF()).As()
-        select unit;
+    private static Eff<RT, Unit> promptAndSaveAutoCategorized<RT>(Classification @class)
+        where RT : IHasConsole, IHasAutoClassifier
+        => @class switch
+        {
+            SubClassifications => unitEff,
+            Categorized c  => 
+                from shouldAdd in readValue<RT, bool>("", parseBoolInput, "Use for auto-classify? (y/true/n/false)")
+                from rt in askE<RT>()
+                from _2 in when(shouldAdd,  rt.AutoClassifier.Save(c.LineItem.Description, c.Category)).As()
+                select unit,
+            _ => throw patternMatchError(@class)
+        };
+
 
     static Option<bool> parseBoolInput(string input) =>
         parseBool(input) |
@@ -45,9 +49,7 @@ public static class UserClassification
 
     private static Func<Runtime, ClassifyRT> getClassifyRuntime(Seq<CategorySelectOption> cats, LineItem lineItem) =>
         rt => new ClassifyRT(rt.Console,
-            cats.Filter(cat => cat.IsIncome ?
-                lineItem.Amount > 0 :
-                lineItem.Amount < 0
+            cats.Filter(cat => cat.IsIncome ? lineItem.Amount > 0 : lineItem.Amount < 0
             )
             , lineItem,
             rt.AutoClassifier);
@@ -79,7 +81,7 @@ public static class UserClassification
                 Pure((Classification)new Categorized(category, lineItem)),
             () => from @class in classify
                         //todo should disable entirely with subcategories because will just auto-set last?
-                        from _1 in saveAutoCategorized<ClassifyRT>(@class)
+                        from _1 in promptAndSaveAutoCategorized<ClassifyRT>(@class)
                         select @class
         )
         select result;
