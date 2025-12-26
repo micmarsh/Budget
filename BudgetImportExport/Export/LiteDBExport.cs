@@ -11,7 +11,6 @@ public class LiteDBExport(string DbFilePath) : IExport
     
     static LiteDBExport() => RegisterSerializers.Register();
     
-    // todo maybe Seq can be some kind of Streaming construct?
     public Iterator<ClassificationDoc> ExportClassifications()
     {
         var coll = db.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));

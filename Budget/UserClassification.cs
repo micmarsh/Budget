@@ -27,10 +27,10 @@ public static class UserClassification
         => @class switch
         {
             SubClassifications => unitEff,
-            Categorized c  => 
+            Categorized(var category, {Description: var desc})  => 
                 from shouldAdd in readValue<RT, bool>("", parseBoolInput, "Use for auto-classify? (y/true/n/false)")
                 from rt in askE<RT>()
-                from _2 in when(shouldAdd,  rt.AutoClassifier.Save(c.LineItem.Description, c.Category)).As()
+                from _2 in when(shouldAdd,  rt.AutoClassifier.Save(desc, category)).As()
                 select unit,
             _ => throw patternMatchError(@class)
         };

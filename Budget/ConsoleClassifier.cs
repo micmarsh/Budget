@@ -24,12 +24,20 @@ public static class ConsoleClassifier
 
     private static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInfo info, CsvLines lines)
         => lines.Lines.Map(line =>   
-                (getDescription(info, line), 
-                line.Fields.Find(info.AmountField).Bind(parseDecimal).ToValidation(Error.New($"Line {line.LineNumber} missing or invalid amount field")),
-                line.Fields.Find(info.DateField).Bind(parseDateTime).ToValidation(Error.New($"Line {line.LineNumber} has an invalid date field")))
+                (getDescription(info, line), getAmount(info, line), getDate(info, line))
                 .Apply((desc, amount, date) => new LineItem(desc, amount, date)))
             .Map(v => v.As().ToEither())
             .Partition();
+
+    private static Validation<Error, DateTime> getDate(CsvInfo info, CsvLine line) => 
+        line.Fields.Find(info.DateField)
+            .Bind(parseDateTime)
+            .ToValidation(Error.New($"Line {line.LineNumber} has an invalid date field"));
+
+    private static Validation<Error, decimal> getAmount(CsvInfo info, CsvLine line) => 
+        line.Fields.Find(info.AmountField)
+            .Bind(parseDecimal)
+            .ToValidation(Error.New($"Line {line.LineNumber} missing or invalid amount field"));
 
     private static Validation<Error, string> getDescription(CsvInfo info, CsvLine line) =>
         line.Fields.Find(info.DescriptionField)

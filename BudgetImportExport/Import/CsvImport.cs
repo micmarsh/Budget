@@ -47,9 +47,12 @@ public class CsvImport : IImport<ClassificationDoc>, IBulkImport<ClassificationD
 
     public void Dispose()
     {
-        stream.Value.Flush();
-        stream.Value.Close();
-        stream.Value.Dispose();
+        if (stream.IsValueCreated)
+        {
+            stream.Value.Flush();
+            stream.Value.Close();
+            stream.Value.Dispose();
+        }
     }
 
     public Unit WriteAll(Seq<ClassificationDoc> items)
