@@ -35,7 +35,6 @@ public class LiteDBImport(string DbFilePath) : IBulkImport
         var line = lines.First();
         var dateTime = line.Date;
         return new ClassificationDoc(new ObjectId(line.DbId),
-            dateTime,
             new SubClassifications(
                 Prelude.toSeq(lines.Select(l => new SubCategorized(
                     new Category(line.Category.IfNone(() => throw new InvalidOperationException($"SubClassification of {l.Amount} for {line.Description} (DB ID: {line.DbId}) is missing a Category"))),
@@ -51,7 +50,6 @@ public class LiteDBImport(string DbFilePath) : IBulkImport
     {
         var dateTime = line.Date;
         return new ClassificationDoc(new ObjectId(line.DbId),
-            dateTime,
             line.Category.Match(category => new Categorized(
                 new Category(category),
                 new LineItem(line.Description,

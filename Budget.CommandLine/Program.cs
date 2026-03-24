@@ -43,7 +43,7 @@ void FileTypeValidation(ArgumentResult argumentResult)
         case ".csv":
             return;
         default:
-            argumentResult.AddError("Only db or csv files are supported");
+            argumentResult.AddError($"Invalid file type extension '{file.Extension}', only .db or .csv files are supported");
             break;
     }
 }

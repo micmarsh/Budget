@@ -35,7 +35,7 @@ public interface IAutoClassifier
     IO<Option<Category>> Lookup(string description);
 }
 
-public record ClassificationsState(
+public readonly record struct ClassificationsState(
     DateTime Date,
     Seq<CategorySelectOption> Categories,
     Set<Classification> OnDate);

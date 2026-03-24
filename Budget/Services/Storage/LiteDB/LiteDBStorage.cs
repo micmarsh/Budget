@@ -34,11 +34,11 @@ public class LiteDb : IStorage, IAutoClassifier
 
             //todo need separate categories collection?
             var lastDay = coll.Query()
-                .OrderByDescending(c => c.DateTime)
-                .Select(c => c.DateTime)
+                .OrderByDescending(c => c.Record.LineItem.Date)
+                .Select(c => c.Record.LineItem.Date)
                 .FirstOrDefault();
             var lastClassifications = coll
-                .Find(c => c.DateTime.Date == lastDay.Date)
+                .Find(c => c.Record.LineItem.Date == lastDay.Date)
                 .Select(doc => doc.Record)
                 .ToList();
             return new ClassificationsState(
@@ -53,7 +53,7 @@ public class LiteDb : IStorage, IAutoClassifier
         {
             using var conn = new LiteDatabase(_connectionString);
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-            coll.Insert(new ClassificationDoc(_newObjectId(), classified.LineItem.Date, classified));
+            coll.Insert(new ClassificationDoc(_newObjectId(), classified));
 
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
             catsColl.Upsert(CategorySelectOption.Create(classified));
