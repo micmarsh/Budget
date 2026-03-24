@@ -11,10 +11,10 @@ public class LiteDBExport(string DbFilePath) : IExport
     
     static LiteDBExport() => RegisterSerializers.Register();
     
-    public Iterator<ClassificationDoc> ExportClassifications()
+    public Iterator<FlatClassification> ExportClassifications()
     {
         var coll = db.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-        return Iterator.from(coll.Find(_ => true));
+        return Iterator.from(coll.Find(_ => true)).Bind(LiteDbUtils.ConvertToRows);
     }
 
     public void Dispose() => db.Dispose();

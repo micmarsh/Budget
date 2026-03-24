@@ -23,7 +23,7 @@ var migrate = Cmd.New("migrate", "Migrate data from one format to another (csv, 
     .WithAction((input, output) =>
     {
         var exporter = ExportFactory.Create(input);
-        var importer = ImportFactory.CreateForBulk(output);
+        var importer = ImportFactory.Create(output);
         importer.WriteAll(exporter.ExportClassifications().ToSeq());
         return 0;
     });

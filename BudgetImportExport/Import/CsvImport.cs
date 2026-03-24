@@ -5,7 +5,7 @@ using static LanguageExt.Prelude;
 
 namespace BudgetImportExport.Import;
 
-public class CsvImport : IImport, IBulkImport
+public class CsvImport : IBulkImport
 {
     private readonly string _filePath;
 
@@ -23,28 +23,14 @@ public class CsvImport : IImport, IBulkImport
     private readonly Lazy<StreamWriter> stream;
 
 
-    public Unit Write(ClassificationDoc doc)
+    public Unit Write(FlatClassification row)
     {
-        foreach (var row in ConvertToRows(doc))
-        {
-            stream.Value.WriteLine(row.ToString());
-        }
+
+        stream.Value.WriteLine(row.ToString());
+        
 
         return Unit.Default;
     }
-
-    private static Iterator<FlatClassification> ConvertToRows(ClassificationDoc doc) =>
-        doc.Record switch
-        {
-            Categorized({ Value: var category }, var (desc, amount, date)) =>
-                Iterator.singleton(new FlatClassification(doc.Id.ToString(), date, category, desc, amount)),
-            UnCategorized(var (desc, amount, date)) => 
-                Iterator.singleton(new FlatClassification(doc.Id.ToString(), date, None, desc, amount)),
-            SubClassifications(var children, var (desc, _, date)) =>
-                Iterator.from(children.Map(c =>
-                    new FlatClassification(doc.Id.ToString(), date, c.Category.Value, desc, c.Amount))),
-            _ => throw Utilities.patternMatchError(doc.Record)
-        };
 
     public void Dispose()
     {
@@ -56,11 +42,10 @@ public class CsvImport : IImport, IBulkImport
         }
     }
 
-    public Unit WriteAll(Seq<ClassificationDoc> items)
+    public Unit WriteAll(Seq<FlatClassification> items)
     {
         File.WriteAllText(_filePath, string.Join(Environment.NewLine, 
             FlatClassification.CsvHeader.Cons(items
-                .Bind(item => ConvertToRows(item).ToSeq())
                 .Map(row => row.ToString())
                 .AsEnumerable()
             )));
