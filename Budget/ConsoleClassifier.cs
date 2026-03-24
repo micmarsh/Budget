@@ -2,9 +2,9 @@ using LanguageExt;
 using LanguageExt.Common;
 using LanguageExt.Traits;
 using static LanguageExt.Prelude;
-using static BudgetClassifier.Utilities;
+using static Budget.Utilities;
 
-namespace BudgetClassifier;
+namespace Budget;
 
 public static class ConsoleClassifier
 {

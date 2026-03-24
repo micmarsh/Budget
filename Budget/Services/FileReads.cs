@@ -1,6 +1,6 @@
 using LanguageExt;
 
-namespace BudgetClassifier;
+namespace Budget;
 
 public class FileReads : IFileReads
 {

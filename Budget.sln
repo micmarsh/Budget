@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BudgetClassifier", "BudgetClassifier\BudgetClassifier.csproj", "{751F3D5D-C436-409B-B910-BD106DCA6E73}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Budget", "Budget\Budget.csproj", "{751F3D5D-C436-409B-B910-BD106DCA6E73}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BudgetTests", "BudgetTests\BudgetTests.csproj", "{A5D99C12-098D-4ABE-8FEA-0704B8D2D254}"
 EndProject

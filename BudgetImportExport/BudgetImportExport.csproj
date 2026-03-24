@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\BudgetClassifier\BudgetClassifier.csproj" />
+      <ProjectReference Include="..\Budget\Budget.csproj" />
     </ItemGroup>
 
 </Project>

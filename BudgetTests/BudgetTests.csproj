@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\BudgetClassifier\BudgetClassifier.csproj" />
+      <ProjectReference Include="..\Budget\Budget.csproj" />
     </ItemGroup>
 
     <ItemGroup>

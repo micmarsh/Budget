@@ -2,7 +2,7 @@ using LanguageExt;
 using LiteDB;
 using static LanguageExt.Prelude;
 
-namespace BudgetClassifier.Services.Storage.LiteDB;
+namespace Budget.Services.Storage.LiteDB;
 
 public class LiteDb : IStorage, IAutoClassifier
 {

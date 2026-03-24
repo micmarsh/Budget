@@ -1,7 +1,7 @@
 using LanguageExt;
 using LanguageExt.Common;
 
-namespace BudgetClassifier;
+namespace Budget;
 
 public record Runtime(IFileReads FileReads, IStorage Storage, IConsole Console, IAutoClassifier AutoClassifier)
     : IHasConsole, IHasAutoClassifier;

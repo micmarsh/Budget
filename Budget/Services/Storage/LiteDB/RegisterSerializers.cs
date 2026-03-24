@@ -1,7 +1,7 @@
 using LiteDB;
-using static BudgetClassifier.Services.Storage.LiteDB.CustomSerializers;
+using static Budget.Services.Storage.LiteDB.CustomSerializers;
 
-namespace BudgetClassifier.Services.Storage.LiteDB;
+namespace Budget.Services.Storage.LiteDB;
 
 public static class RegisterSerializers
 {
