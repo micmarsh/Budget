@@ -3,7 +3,7 @@ using LanguageExt;
 namespace Budget;
 
 // not in "Domain" b/c is likely getting moved to console-only project/namespace, not shared
-public record CategorySelectOption(Category Category, bool IsIncome)
+public readonly record struct CategorySelectOption(Category Category, bool IsIncome)
 {
     public static Seq<CategorySelectOption> Create(Classification classification) =>
         classification switch
