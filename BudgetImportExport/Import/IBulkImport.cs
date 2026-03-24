@@ -1,8 +1,9 @@
+using Budget.Services.Storage.LiteDB;
 using LanguageExt;
 
 namespace BudgetImportExport.Import;
 
-public interface IBulkImport<T>
+public interface IBulkImport
 {
-    Unit WriteAll(Seq<T> items);
+    Unit WriteAll(Seq<ClassificationDoc> items);
 }

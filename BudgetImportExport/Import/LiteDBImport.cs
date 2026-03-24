@@ -5,7 +5,7 @@ using LiteDB;
 
 namespace BudgetImportExport.Import;
 
-public class LiteDBImport(string DbFilePath) : IImport<ClassificationDoc>, IBulkImport<ClassificationDoc>
+public class LiteDBImport(string DbFilePath) : IImport, IBulkImport
 {
     private LiteDatabase db = new (DbFilePath);
     

@@ -5,7 +5,7 @@ using static LanguageExt.Prelude;
 
 namespace BudgetImportExport.Import;
 
-public class CsvImport : IImport<ClassificationDoc>, IBulkImport<ClassificationDoc>
+public class CsvImport : IImport, IBulkImport
 {
     private readonly string _filePath;
 
