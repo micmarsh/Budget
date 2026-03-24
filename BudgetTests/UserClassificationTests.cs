@@ -1,5 +1,6 @@
 using Budget;
 using FluentAssertions;
+using static Budget.UserClassification;
 
 namespace BudgetTests;
 
@@ -34,6 +35,7 @@ public class UserClassificationTests
     public void classifyAll_basicTest()
     {
         var expectedOutput = Seq(
+"3 items left to classify",
 @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
 (Spending)
   1) Almsgiving
@@ -47,6 +49,9 @@ public class UserClassificationTests
   2) Food
   3) Car",
 // select 2/"Food"
+AutoClassifyPrompt,
+// "n"
+"2 items left to classify",
 @"Progressive Insurance: -$800.00 on Thursday, November 20, 2025
 (Spending)
   1) Food
@@ -57,25 +62,30 @@ public class UserClassificationTests
 // enter "3 200"
 "$200.00 remaining to classify",
 // enter "* Motorcycle 200" (exercising optional bullet points)"
+"1 items left to classify",
 @"Stuff: -$10.00 on Thursday, November 20, 2025
 (Spending)
   1) House
   2) Car
   3) Motorcycle
   4) Food
-  5) Almsgiving"
+  5) Almsgiving",
+AutoClassifyPrompt
+// "n"
 );
 
         var console = new TestConsole([
             "  ",
             "2",
+            "n",
             "* House 400",
             "3 200",
             "* Motorcycle 200",
-            "Other"
+            "Other",
+            "n"
         ]);
         
-        var _ = UserClassification.classifyAll(Categories, LineItems)
+        var _ = classifyAll(Categories, LineItems)
             .RunUnsafe(ConsoleOnly(console));
 
         console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
@@ -99,6 +109,7 @@ public class UserClassificationTests
     public void classify_applySubClassifications_ShouldEnforceTotals()
     {
         var expectedOutput = Seq(
+            "1 items left to classify",
             @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
 (Spending)
   1) Almsgiving
@@ -138,7 +149,8 @@ public class UserClassificationTests
             "notaNumber",
             "-9",
             "1234",
-            "2"
+            "2",
+            "n"
         ]);
 
         var result = testClassify(Categories, LineItems[0])
@@ -146,16 +158,18 @@ public class UserClassificationTests
             .RunUnsafe(console);
 
         var expectedOutput = 
-            toSeq(Enumerable.Repeat($"Please select a number between 1 and {SpendingCategoryCount}", console.InitialInputs.Count - 1));
+            toSeq(Enumerable.Repeat($"Please select a number between 1 and {SpendingCategoryCount}", console.InitialInputs.Count - 2)) // subtract 2 b/c of auto-classify prompt
+                .Add(AutoClassifyPrompt);
         
         Assert.Equal("Food", result.Category.Value);
-        Assert.Equal(expectedOutput, console.Outputs.Tail); // skip initial prompt
+        Assert.Equal(expectedOutput, console.Outputs.Skip(2)); // skip "items left" info and initial prompt
     }
     
     [Fact]
     public void classify_selectCategory_ShouldHandleCancellation()
     {
         var expectedOutput = Seq(
+            "1 items left to classify",
             @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
 (Spending)
   1) Almsgiving
@@ -178,7 +192,9 @@ public class UserClassificationTests
 (Spending)
   1) Almsgiving
   2) Food
-  3) Car"
+  3) Car",
+            AutoClassifyPrompt
+            // "n"
         );
         
         var console = new TestConsole([
@@ -188,7 +204,8 @@ public class UserClassificationTests
             "cancel",
             "1234",
             "cancel with extra text",
-            "Other"
+            "Other",
+            "n"
         ]);
 
         var result = testClassify(Categories, LineItems[0])
@@ -205,6 +222,7 @@ public class UserClassificationTests
     public void classify_cancellation_ShouldCoverEverythingNeeded()
     {
         var expectedOutput = Seq(
+            "1 items left to classify",
             @"Frank's POS Charge: -$23.32 on Thursday, November 20, 2025
 (Spending)
   1) Almsgiving
@@ -249,8 +267,9 @@ public class UserClassificationTests
 (Spending)
   1) Almsgiving
   2) Food
-  3) Car"
+  3) Car",
             //"Other"
+          AutoClassifyPrompt  
         );
         
         var console = new TestConsole([
@@ -264,7 +283,8 @@ public class UserClassificationTests
             "cancel",
             "6",
             "cancel",
-            "Other"
+            "Other",
+            "n"
         ]);
 
         var result = testClassify(Categories, LineItems[0])
@@ -279,28 +299,40 @@ public class UserClassificationTests
     public void classify_income_ShouldFilterCategories()
     {
         var expectedOutput = Seq(
+            "4 items left to classify",
             @"PAYCHECK: $1,000.00 on Thursday, November 20, 2025
 (Income)
   1) Work",
             // enter "1",
+            AutoClassifyPrompt,
+            // "n"
+            "3 items left to classify",
             @"MENARDS REBATE: $300.00 on Thursday, November 20, 2025
 (Income)
   1) Work",
             // enter "Rebate"
+            AutoClassifyPrompt,
+            // "n"
+            "2 items left to classify",
             @"Food Store: -$123.00 on Thursday, November 20, 2025
 (Spending)
   1) Almsgiving
   2) Food
   3) Car",
             // "Groceries"
+            AutoClassifyPrompt,
+            // "n"
+            "1 items left to classify",
             @"Cash: $1.00 on Thursday, November 20, 2025
 (Income)
   1) Rebate
-  2) Work"
+  2) Work",
             // enter "Found on Sidewalk"
+            AutoClassifyPrompt
+                // "n"
         );
         
-        var console = new TestConsole(["1", "Rebate", "Groceries", "Found on Sidewalk"]);
+        var console = new TestConsole(["1", "n", "Rebate", "n", "Groceries", "n", "Found on Sidewalk", "n"]);
 
         var lineItems = Seq(new LineItem("PAYCHECK", 1000M, TestDate),
             new LineItem("MENARDS REBATE", 300M, TestDate),

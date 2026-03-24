@@ -22,13 +22,16 @@ public static class UserClassification
             .IgnoreF()
             .As();
 
+
+    public const string AutoClassifyPrompt = "Use for auto-classify? (y/true/n/false)";
+    
     private static Eff<RT, Unit> promptAndSaveAutoCategorized<RT>(Classification @class)
         where RT : IHasConsole, IHasAutoClassifier
         => @class switch
         {
             SubClassifications => unitEff,
             Categorized(var category, {Description: var desc})  => 
-                from shouldAdd in readValue<RT, bool>("", parseBoolInput, "Use for auto-classify? (y/true/n/false)")
+                from shouldAdd in readValue<RT, bool>("", parseBoolInput, AutoClassifyPrompt)
                 from rt in askE<RT>()
                 from _2 in when(shouldAdd,  rt.AutoClassifier.Save(desc, category)).As()
                 select unit,
