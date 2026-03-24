@@ -24,9 +24,7 @@ public class CsvImport : IImport<ClassificationDoc>, IBulkImport<ClassificationD
 
     public Unit Write(ClassificationDoc doc)
     {
-        var rows = ConvertToRows(doc);
-
-        foreach (var row in rows)
+        foreach (var row in ConvertToRows(doc))
         {
             stream.Value.WriteLine(row.ToString());
         }
