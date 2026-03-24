@@ -2,7 +2,7 @@ using LanguageExt;
 using LiteDB;
 using static LanguageExt.Prelude;
 
-namespace Budget.Services.Storage.LiteDB;
+namespace BudgetClassifier.Services.Storage.LiteDB;
 
 public static class CustomSerializers
 {

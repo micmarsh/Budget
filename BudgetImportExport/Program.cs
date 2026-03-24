@@ -1,7 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using Budget;
-using Budget.Services.Storage.LiteDB;
+using BudgetClassifier;
+using BudgetClassifier.Services.Storage.LiteDB;
 using BudgetImportExport.Export;
 using BudgetImportExport.Import;
 using LanguageExt;

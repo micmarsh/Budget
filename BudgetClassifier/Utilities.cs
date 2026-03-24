@@ -4,7 +4,7 @@ using LanguageExt.Traits;
 
 using static LanguageExt.Prelude;
 
-namespace Budget;
+namespace BudgetClassifier;
 
 public static class Utilities
 {

@@ -1,4 +1,4 @@
-using Budget;
+using BudgetClassifier;
 
 namespace BudgetTests;
 

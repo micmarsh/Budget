@@ -1,5 +1,5 @@
-using Budget;
-using Budget.Services.Storage.LiteDB;
+using BudgetClassifier;
+using BudgetClassifier.Services.Storage.LiteDB;
 using LanguageExt;
 using LiteDB;
 

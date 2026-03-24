@@ -1,12 +1,12 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using Budget;
-using Budget.Services.Storage.LiteDB;
+using BudgetClassifier;
+using BudgetClassifier.Services.Storage.LiteDB;
 using LanguageExt;
 using LiteDB;
 using static LanguageExt.Prelude;
-using static Budget.Services.Storage.LiteDB.CustomSerializers;
-using Console = Budget.Console;
+using static BudgetClassifier.Services.Storage.LiteDB.CustomSerializers;
+using Console = BudgetClassifier.Console;
 
 // https://stackoverflow.com/a/5721294
 string createHash(string phrase)

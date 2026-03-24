@@ -1,5 +1,5 @@
-using Budget;
-using Budget.Services.Storage.LiteDB;
+using BudgetClassifier;
+using BudgetClassifier.Services.Storage.LiteDB;
 using LanguageExt;
 
 namespace BudgetImportExport.Import;
@@ -14,7 +14,7 @@ public class CsvImport : IImport<ClassificationDoc>, IBulkImport<ClassificationD
         stream = new Lazy<StreamWriter>(() =>
         {
             var value = new StreamWriter(filePath);
-            value.WriteLine(FlatClassification.Header);
+            value.WriteLine(FlatClassification.CsvHeader);
             return value;
         });
     }
@@ -56,7 +56,7 @@ public class CsvImport : IImport<ClassificationDoc>, IBulkImport<ClassificationD
     public Unit WriteAll(Seq<ClassificationDoc> items)
     {
         File.WriteAllText(_filePath, string.Join(Environment.NewLine, 
-            FlatClassification.Header.Cons(items
+            FlatClassification.CsvHeader.Cons(items
                 .Bind(item => ConvertToRows(item).ToSeq())
                 .Map(row => row.ToString())
                 .AsEnumerable()

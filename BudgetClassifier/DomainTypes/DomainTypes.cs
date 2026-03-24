@@ -1,6 +1,6 @@
 using LanguageExt;
 
-namespace Budget;
+namespace BudgetClassifier;
 
 // Are these really "DomainTypes"? There's barely any kind of validation baked-in at all
 

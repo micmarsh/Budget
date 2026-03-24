@@ -1,10 +1,10 @@
 using LanguageExt;
 using LanguageExt.Common;
 using LanguageExt.Traits;
-using static Budget.Utilities;
+using static BudgetClassifier.Utilities;
 using static LanguageExt.Prelude;
 
-namespace Budget;
+namespace BudgetClassifier;
 
 public static class UserClassification
 {

@@ -1,4 +1,4 @@
-using Budget.Services.Storage.LiteDB;
+using BudgetClassifier.Services.Storage.LiteDB;
 using LanguageExt;
 
 namespace BudgetImportExport.Export;
