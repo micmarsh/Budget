@@ -1,6 +1,7 @@
 using BudgetClassifier;
 using BudgetClassifier.Services.Storage.LiteDB;
 using LanguageExt;
+using static LanguageExt.Prelude;
 
 namespace BudgetImportExport.Import;
 
@@ -37,6 +38,8 @@ public class CsvImport : IImport<ClassificationDoc>, IBulkImport<ClassificationD
         {
             Categorized({ Value: var category }, var (desc, amount, date)) =>
                 Iterator.singleton(new FlatClassification(doc.Id.ToString(), date, category, desc, amount)),
+            UnCategorized(var (desc, amount, date)) => 
+                Iterator.singleton(new FlatClassification(doc.Id.ToString(), date, None, desc, amount)),
             SubClassifications(var children, var (desc, _, date)) =>
                 Iterator.from(children.Map(c =>
                     new FlatClassification(doc.Id.ToString(), date, c.Category.Value, desc, c.Amount))),
