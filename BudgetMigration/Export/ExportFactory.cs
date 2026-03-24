@@ -1,4 +1,4 @@
-namespace BudgetImportExport.Export;
+namespace BudgetMigration.Export;
 
 public static class ExportFactory
 {

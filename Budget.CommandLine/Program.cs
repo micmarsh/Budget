@@ -2,8 +2,8 @@
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
-using BudgetImportExport.Export;
-using BudgetImportExport.Import;
+using BudgetMigration.Export;
+using BudgetMigration.Import;
 using CommandLine.Immutable;
 using LanguageExt;
 

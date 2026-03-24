@@ -2,7 +2,7 @@ using Budget;
 using Budget.Services.Storage.LiteDB;
 using LanguageExt;
 
-namespace BudgetImportExport;
+namespace BudgetMigration;
 
 public static class LiteDbUtils
 {

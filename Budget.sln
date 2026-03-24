@@ -4,7 +4,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Budget", "Budget\Budget.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BudgetTests", "BudgetTests\BudgetTests.csproj", "{A5D99C12-098D-4ABE-8FEA-0704B8D2D254}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BudgetImportExport", "BudgetImportExport\BudgetImportExport.csproj", "{41ADE08A-D16F-4B16-BCA0-B4C31883B937}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BudgetMigration", "BudgetMigration\BudgetMigration.csproj", "{41ADE08A-D16F-4B16-BCA0-B4C31883B937}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Budget.CommandLine", "Budget.CommandLine\Budget.CommandLine.csproj", "{3502F7EA-2A3B-47D0-8965-57F72E6722D7}"
 EndProject

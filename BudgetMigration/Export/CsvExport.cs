@@ -3,7 +3,7 @@ using Budget.Services.Storage.LiteDB;
 using LanguageExt;
 using LiteDB;
 
-namespace BudgetImportExport.Export;
+namespace BudgetMigration.Export;
 
 public class CsvExport(string filePath) : IExport
 {

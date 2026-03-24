@@ -1,6 +1,6 @@
 using Budget.Services.Storage.LiteDB;
 
-namespace BudgetImportExport.Import;
+namespace BudgetMigration.Import;
 
 public static class ImportFactory
 {

@@ -1,6 +1,6 @@
 using LanguageExt;
 
-namespace BudgetImportExport;
+namespace BudgetMigration;
 
 public readonly record struct FlatClassification(string DbId, DateTime Date, Option<string> Category, string Description, decimal Amount)
 {

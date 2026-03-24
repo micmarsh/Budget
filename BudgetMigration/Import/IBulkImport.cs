@@ -1,7 +1,7 @@
 using Budget.Services.Storage.LiteDB;
 using LanguageExt;
 
-namespace BudgetImportExport.Import;
+namespace BudgetMigration.Import;
 
 public interface IBulkImport
 {

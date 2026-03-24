@@ -1,7 +1,7 @@
 using Budget.Services.Storage.LiteDB;
 using LanguageExt;
 
-namespace BudgetImportExport.Export;
+namespace BudgetMigration.Export;
 
 public interface IExport : IDisposable
 {
