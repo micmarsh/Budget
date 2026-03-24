@@ -26,7 +26,7 @@ public static class ConsoleClassifier
         => lines.Lines.Map(line =>   
                 (getDescription(info, line), getAmount(info, line), getDate(info, line))
                 .Apply((desc, amount, date) => new LineItem(desc, amount, date)))
-            .Map(v => v.As().ToEither())
+            .Map(v => v.As().ToFin())
             .Partition();
 
     private static Validation<Error, DateTime> getDate(CsvInfo info, CsvLine line) => 
