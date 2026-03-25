@@ -42,13 +42,13 @@ public class CsvImport : IBulkImport
         }
     }
 
-    public Unit WriteAll(Seq<FlatClassification> items)
+    public IO<Unit> WriteAll(Seq<FlatClassification> items) => IO.lift(() =>
     {
-        File.WriteAllText(_filePath, string.Join(Environment.NewLine, 
+        File.WriteAllText(_filePath, string.Join(Environment.NewLine,
             FlatClassification.CsvHeader.Cons(items
                 .Map(row => row.ToString())
                 .AsEnumerable()
             )));
         return Unit.Default;
-    }
+    });
 }

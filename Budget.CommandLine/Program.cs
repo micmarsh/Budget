@@ -2,6 +2,7 @@
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using BudgetMigration;
 using BudgetMigration.Export;
 using BudgetMigration.Import;
 using CommandLine.Immutable;
@@ -24,8 +25,11 @@ var migrate = Cmd.New("migrate", "Migrate data from one format to another (csv, 
     {
         var exporter = ExportFactory.Create(input);
         var importer = ImportFactory.Create(output);
-        importer.WriteAll(exporter.ExportClassifications().ToSeq());
-        return 0;
+        return exporter.ExportClassifications()
+            .Collect()
+            .Bind(importer.WriteAll)
+            .Map(_ => 0)
+            .Run();
     });
 
 Cmd.New("budget", "A suite of tools for managing a household budget")

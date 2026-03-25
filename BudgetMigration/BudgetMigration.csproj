@@ -11,4 +11,8 @@
       <ProjectReference Include="..\Budget\Budget.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="LanguageExt.Streaming" Version="5.0.0-beta-77" />
+    </ItemGroup>
+
 </Project>

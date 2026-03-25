@@ -5,5 +5,5 @@ namespace BudgetMigration.Import;
 
 public interface IBulkImport
 {
-    Unit WriteAll(Seq<FlatClassification> items);
+    IO<Unit> WriteAll(Seq<FlatClassification> items);
 }

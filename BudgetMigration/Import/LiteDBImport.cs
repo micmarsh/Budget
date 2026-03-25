@@ -12,22 +12,22 @@ public class LiteDBImport(string DbFilePath) : IBulkImport
     static LiteDBImport() => RegisterSerializers.Register();
     
     public void Dispose() => db.Dispose();
-    
-    public Unit WriteAll(Seq<FlatClassification> items)
+
+    public IO<Unit> WriteAll(Seq<FlatClassification> items) => IO.lift(() =>
     {
         var coll = db.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
         var classificationDocs = items
             .GroupBy(line => line.DbId)
             .Select(g => g.Count() == 1 ? getSingle(g.First()) : getSubclassifications(g.AsEnumerable()))
             .AsIterable().ToSeq();
-        
+
         coll.Upsert(classificationDocs);
-                        
+
         var catsColl = db.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
         catsColl.Upsert(classificationDocs.Map(doc => doc.Record).Bind(CategorySelectOption.Create));
-        
+
         return Unit.Default;
-    }
+    });
     
     
     private static ClassificationDoc getSubclassifications(IEnumerable<FlatClassification> lines)

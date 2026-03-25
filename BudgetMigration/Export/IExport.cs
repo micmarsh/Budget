@@ -5,5 +5,5 @@ namespace BudgetMigration.Export;
 
 public interface IExport : IDisposable
 {
-    Iterator<FlatClassification> ExportClassifications();
+    Source<FlatClassification> ExportClassifications();
 }
