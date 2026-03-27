@@ -7,15 +7,17 @@ using BudgetMigration.Export;
 using BudgetMigration.Import;
 using CommandLine.Immutable;
 using LanguageExt;
+using LanguageExt.Common;
+using static CommandLine.Immutable.Parsing;
 
 Argument<FileInfo> inputFile = new ("input file")
 {
-    Validators = { FileTypeValidation }
+    Validators = { validate(FileTypeValidation(ExportFactory.Exporters.Keys)) }
 };
 
 Argument<FileInfo> outputFile = new("output file")
 {
-    Validators = { FileTypeValidation }
+    Validators = { validate(FileTypeValidation(ImportFactory.Importers.Keys)) }
 };
 
 var migrate = Cmd.New("migrate", "Migrate data from one format to another (csv, litedb, hopefully soon sqlite)")
@@ -38,16 +40,10 @@ Cmd.New("budget", "A suite of tools for managing a household budget")
     .Parse(args)
     .Invoke();
 
-void FileTypeValidation(ArgumentResult argumentResult)
+Func<ArgumentResult, Seq<Error>> FileTypeValidation(Iterable<string> allowExtensions) => argumentResult =>
 {
+    var extSet = Prelude.toSet(allowExtensions);
     var file = argumentResult.GetValueOrDefault<FileInfo>();
-    switch (file.Extension)
-    {
-        case ".db":
-        case ".csv":
-            return;
-        default:
-            argumentResult.AddError($"Invalid file type extension '{file.Extension}', only .db or .csv files are supported");
-            break;
-    }
-}
+    return extSet.Contains(file.Extension) ? [] :
+        [Error.New($"Invalid file type extension '{file.Extension}', only {string.Join(", ", allowExtensions)} files are supported")];
+};

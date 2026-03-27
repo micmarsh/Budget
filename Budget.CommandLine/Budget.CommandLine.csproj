@@ -12,6 +12,6 @@
     </ItemGroup>
     
     <ItemGroup>
-      <PackageReference Include="CommandLine.Immutable" Version="0.2.0" />
+      <PackageReference Include="CommandLine.Immutable.LangExt" Version="0.1.0" />
     </ItemGroup>
 </Project>
