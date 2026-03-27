@@ -29,9 +29,7 @@ var migrate = Cmd.New("migrate", "Migrate data from one format to another (csv, 
         var importer = ImportFactory.Create(output);
         return exporter.ExportClassifications()
             .Collect()
-            .Bind(importer.WriteAll)
-            .Map(_ => 0)
-            .Run();
+            .Bind(importer.WriteAll);
     });
 
 Cmd.New("budget", "A suite of tools for managing a household budget")
