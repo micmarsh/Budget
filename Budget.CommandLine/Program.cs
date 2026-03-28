@@ -10,38 +10,37 @@ using LanguageExt;
 using LanguageExt.Common;
 using static CommandLine.Immutable.Parsing;
 
-Argument<FileInfo> inputFile = new ("input file")
+Argument<IExport> inputFile = new ("input file")
 {
-    Validators = { validate(FileTypeValidation(ExportFactory.Exporters.Keys)) }
+    CustomParser = factory(argResult =>
+    {
+        //todo cleaner factory method here and below
+        var file = new FileInfo(argResult.Tokens[0].Value);
+        return ExportFactory.Exporters.Find(file.Extension)
+            .Map(fact => fact(file))
+            .ToFin(Error.New($"Unable to create exporter for file {file.Name}"));
+    })
 };
 
-Argument<FileInfo> outputFile = new("output file")
+Argument<IBulkImport> outputFile = new("output file")
 {
-    Validators = { validate(FileTypeValidation(ImportFactory.Importers.Keys)) }
+    CustomParser = factory(argResult =>
+    {
+        var file = new FileInfo(argResult.Tokens[0].Value);
+        return ImportFactory.Importers.Find(file.Extension)
+            .Map(fact => fact(file))
+            .ToFin(Error.New($"Unable to create importer for file {file.Name}"));
+    })
 };
 
 var migrate = Cmd.New("migrate", "Migrate data from one format to another (csv, litedb, hopefully soon sqlite)")
     .AddArgument(inputFile)
     .AddArgument(outputFile)
-    .WithAction((input, output) =>
-    {
-        var exporter = ExportFactory.Create(input);
-        var importer = ImportFactory.Create(output);
-        return exporter.ExportClassifications()
-            .Collect()
-            .Bind(importer.WriteAll);
-    });
+    .WithAction((exporter, importer) =>
+        exporter.ExportClassifications().Collect() >> importer.WriteAll);
 
 Cmd.New("budget", "A suite of tools for managing a household budget")
     .AddSub(migrate)
     .ToRoot()
     .Parse(args)
     .Invoke();
-
-Func<ArgumentResult, Seq<Error>> FileTypeValidation(Iterable<string> allowExtensions) => argumentResult =>
-{
-    var extSet = Prelude.toSet(allowExtensions);
-    var file = argumentResult.GetValueOrDefault<FileInfo>();
-    return extSet.Contains(file.Extension) ? [] :
-        [Error.New($"Invalid file type extension '{file.Extension}', only {string.Join(", ", allowExtensions)} files are supported")];
-};
