@@ -9,9 +9,7 @@ public static class ImportFactory
         (".db", file => new LiteDBImport(file.FullName)),
         ( ".csv", file => new CsvImport(file.FullName))
     );
-    
-    public static IBulkImport Create(FileInfo file) =>         
-        Importers.Find(file.Extension).IfNone(() =>
-            throw new InvalidOperationException($"Unsupported file type to import '{file.Extension}'"))
-        (file);
+
+    public static Option<IBulkImport> Create(FileInfo file) =>
+        Importers.Find(file.Extension).Map(f => f(file));
 }

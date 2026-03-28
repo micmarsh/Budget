@@ -14,10 +14,8 @@ Argument<IExport> inputFile = new ("input file")
 {
     CustomParser = factory(argResult =>
     {
-        //todo cleaner factory method here and below
         var file = new FileInfo(argResult.Tokens[0].Value);
-        return ExportFactory.Exporters.Find(file.Extension)
-            .Map(fact => fact(file))
+        return ExportFactory.Create(file)
             .ToFin(Error.New($"Unable to create exporter for file {file.Name}"));
     })
 };
@@ -27,8 +25,7 @@ Argument<IBulkImport> outputFile = new("output file")
     CustomParser = factory(argResult =>
     {
         var file = new FileInfo(argResult.Tokens[0].Value);
-        return ImportFactory.Importers.Find(file.Extension)
-            .Map(fact => fact(file))
+        return ImportFactory.Create(file)
             .ToFin(Error.New($"Unable to create importer for file {file.Name}"));
     })
 };

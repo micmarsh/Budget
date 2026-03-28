@@ -10,8 +10,6 @@ public static class ExportFactory
         ( ".csv", file => new CsvExport(file.FullName))
     );
 
-    public static IExport Create(FileInfo file) =>
-        Exporters.Find(file.Extension).IfNone(() =>
-                throw new InvalidOperationException($"Unsupported file type to export '{file.Extension}'"))
-            (file);
+    public static Option<IExport> Create(FileInfo file) =>
+        Exporters.Find(file.Extension).Map(f => f(file));
 }
