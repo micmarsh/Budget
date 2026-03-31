@@ -9,6 +9,7 @@ using CommandLine.Immutable;
 using LanguageExt;
 using LanguageExt.Common;
 using static CommandLine.Immutable.Parsing;
+using static LanguageExt.Prelude;
 
 Argument<IExport> inputFile = new ("input file")
 {
@@ -33,11 +34,19 @@ Argument<IBulkImport> outputFile = new("output file")
 var migrate = Cmd.New("migrate", "Migrate data from one format to another (csv, litedb, hopefully soon sqlite)")
     .AddArgument(inputFile)
     .AddArgument(outputFile)
-    .WithAction((exporter, importer) =>
-        exporter.ExportClassifications().Collect() >> importer.WriteAll);
+    .WithAction(RunMigration);
 
 Cmd.New("budget", "A suite of tools for managing a household budget")
     .AddSub(migrate)
     .ToRoot()
     .Parse(args)
     .Invoke();
+
+IO<Unit> RunMigration(IExport export, IBulkImport bulkImport) =>
+    +(export.ExportClassifications().Collect() >> bulkImport.WriteAll
+      | final(IO.lift(() =>
+      {
+          export.Dispose();
+          bulkImport.Dispose();
+          return unit;
+      })));

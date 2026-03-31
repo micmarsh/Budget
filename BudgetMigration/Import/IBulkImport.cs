@@ -3,7 +3,7 @@ using LanguageExt;
 
 namespace BudgetMigration.Import;
 
-public interface IBulkImport
+public interface IBulkImport : IDisposable
 {
     IO<Unit> WriteAll(Seq<FlatClassification> items);
 }
