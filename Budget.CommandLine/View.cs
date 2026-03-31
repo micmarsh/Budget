@@ -47,7 +47,7 @@ public static class View
                 .AddOption(SingleMonthOpt)
                 .WithAction((dbString, year, month) => Prelude.bracketIO(IO.lift(() => new LiteDBExport(dbString)),
                     exporter => exporter.ExportClassifications()
-                    //    .Filter(c => c.Date.Month == (int)month && c.Date.Year == (int)year)
+                        .Filter(c => c.Date.Month == (int)month && c.Date.Year == (int)year)
                         .Reduce(HashMap<Category, decimal>.Empty, (map, c) =>
                             c.Category.Match(
                                 category => map.AddOrUpdate(new Category(category), total => total + c.Amount,
