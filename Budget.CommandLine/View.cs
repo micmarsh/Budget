@@ -43,9 +43,9 @@ public static class View
         Cmd.New("view", "View spending/income for a month, range of months, or overall averages")
             .AddSub(Cmd.New("month", "View spending/income for a single month")
                 .AddOption(DbString)
-                .AddOption(SingleYearOpt)
                 .AddOption(SingleMonthOpt)
-                .WithAction((dbString, year, month) => Prelude.bracketIO(IO.lift(() => new LiteDBExport(dbString)),
+                .AddOption(SingleYearOpt)
+                .WithAction((dbString, month, year) => Prelude.bracketIO(IO.lift(() => new LiteDBExport(dbString)),
                     exporter => exporter.ExportClassifications()
                         .Filter(c => c.Date.Month == (int)month && c.Date.Year == (int)year)
                         .Reduce(HashMap<Category, decimal>.Empty, (map, c) =>
