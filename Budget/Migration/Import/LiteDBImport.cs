@@ -3,7 +3,7 @@ using Budget.Services.Storage.LiteDB;
 using LanguageExt;
 using LiteDB;
 
-namespace BudgetMigration.Import;
+namespace Budget.Migration.Import;
 
 public class LiteDBImport(string DbFilePath) : IBulkImport
 {

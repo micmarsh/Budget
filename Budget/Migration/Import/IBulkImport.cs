@@ -1,7 +1,7 @@
 using Budget.Services.Storage.LiteDB;
 using LanguageExt;
 
-namespace BudgetMigration.Import;
+namespace Budget.Migration.Import;
 
 public interface IBulkImport : IDisposable
 {

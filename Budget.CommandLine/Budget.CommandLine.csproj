@@ -8,10 +8,10 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <ProjectReference Include="..\BudgetMigration\BudgetMigration.csproj" />
+      <PackageReference Include="CommandLine.Immutable.LangExt" Version="0.1.0" />
     </ItemGroup>
     
     <ItemGroup>
-      <PackageReference Include="CommandLine.Immutable.LangExt" Version="0.1.0" />
+      <ProjectReference Include="..\Budget\Budget.csproj" />
     </ItemGroup>
 </Project>

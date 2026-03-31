@@ -1,10 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System.CommandLine;
-using System.CommandLine.Parsing;
-using BudgetMigration;
-using BudgetMigration.Export;
-using BudgetMigration.Import;
+using Budget.Migration.Export;
+using Budget.Migration.Import;
 using CommandLine.Immutable;
 using LanguageExt;
 using LanguageExt.Common;
@@ -42,11 +40,10 @@ Cmd.New("budget", "A suite of tools for managing a household budget")
     .Parse(args)
     .Invoke();
 
-IO<Unit> RunMigration(IExport export, IBulkImport bulkImport) =>
-    +(export.ExportClassifications().Collect() >> bulkImport.WriteAll
-      | final(IO.lift(() =>
-      {
-          export.Dispose();
-          bulkImport.Dispose();
-          return unit;
-      })));
+IO<Unit> RunMigration(IExport exporter, IBulkImport importer) =>
+    exporter.ExportClassifications().Collect().Bind(importer.WriteAll)
+        .Finally(IO.lift(() => 
+        {
+            exporter.Dispose();
+            importer.Dispose(); 
+        }));

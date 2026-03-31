@@ -1,7 +1,7 @@
 using LanguageExt;
 using static LanguageExt.Prelude;
 
-namespace BudgetMigration.Import;
+namespace Budget.Migration.Import;
 
 public static class ImportFactory
 {

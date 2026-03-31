@@ -3,7 +3,7 @@ using Budget.Services.Storage.LiteDB;
 using LanguageExt;
 using static LanguageExt.Prelude;
 
-namespace BudgetMigration.Import;
+namespace Budget.Migration.Import;
 
 public class CsvImport : IBulkImport
 {
