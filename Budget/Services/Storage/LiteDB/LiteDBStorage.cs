@@ -66,12 +66,15 @@ public class LiteDb : IStorage, IAutoClassifier
     public IO<Unit> Save(Classification classified) =>
         IO.lift(() =>
         {
+            var now = DateTime.Now; // todo inject into constructor?
             using var conn = GetDb();
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-            coll.Insert(new ClassificationDoc(_newObjectId(), classified));
+            var categorySelectOptions = CategorySelectOption.Create(classified);
+            coll.Insert(new ClassificationDoc(_newObjectId(), classified, Seq<History>(new Added(now))
+                .Concat(categorySelectOptions.Map(opt => new Classified(opt.Category, now)))));
 
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
-            catsColl.Upsert(CategorySelectOption.Create(classified));
+            catsColl.Upsert(categorySelectOptions);
             return unit;
         });
 

@@ -18,7 +18,8 @@ public class CsvExport(string filePath) : IExport
                     DateTime.Parse(line.Fields[nameof(FlatClassification.Date)]),
                     line.Fields[nameof(FlatClassification.Category)],
                     line.Fields[nameof(FlatClassification.Description)],
-                    decimal.Parse(line.Fields[nameof(FlatClassification.Amount)])
+                    decimal.Parse(line.Fields[nameof(FlatClassification.Amount)]),
+                    line.Fields[nameof(FlatClassification.History)]
         )));
 
     public void Dispose()

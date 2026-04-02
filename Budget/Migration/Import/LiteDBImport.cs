@@ -44,7 +44,7 @@ public class LiteDBImport(string DbFilePath) : IBulkImport
                 new LineItem(line.Description,
                     line.Amount,
                     dateTime)
-            ));
+            ), LiteDbUtils.DecodeHistory(line.History));
     }
 
     private static ClassificationDoc getSingle(FlatClassification line)
@@ -58,6 +58,7 @@ public class LiteDBImport(string DbFilePath) : IBulkImport
                     dateTime)
             ), () => (Classification)new UnCategorized(new LineItem(line.Description,
                 line.Amount,
-                dateTime))));
+                dateTime)))
+            , LiteDbUtils.DecodeHistory(line.History));
     }
 }
