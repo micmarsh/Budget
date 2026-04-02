@@ -8,15 +8,28 @@ public class LiteDb : IStorage, IAutoClassifier
 {
     private const string AutoClassificationsCollectionName = "AutoClassifications";
     private readonly string _connectionString;
+    private readonly Stream _stream;
     private readonly Func<ObjectId> _newObjectId;
 
     public LiteDb(string connectionString, Func<ObjectId> newObjectId)
     {
         _connectionString = connectionString;
         _newObjectId = newObjectId;
+        Initialize();
+    }
+    
+    public LiteDb(Stream stream, Func<ObjectId> newObjectId)
+    {
+        _stream = stream;
+        _newObjectId = newObjectId;
+        Initialize();
+    }
+
+    private void Initialize()
+    {
         RegisterSerializers.Register();
         
-        using var db = new LiteDatabase(_connectionString);
+        using var db = GetDb();
         var coll = db.GetCollection(AutoClassificationsCollectionName);
         var saved = coll.Find(_ => true)
             .Select(doc => (doc["_id"].AsString, new Category(doc["category"].AsString)))
@@ -24,11 +37,13 @@ public class LiteDb : IStorage, IAutoClassifier
         AutoClassifyCache.Swap(_ => saved);
     }
 
+    private LiteDatabase GetDb() => string.IsNullOrEmpty(_connectionString) ? new (_stream) : new(_connectionString);
+
 
     public IO<ClassificationsState> GetLatest() =>
         IO.lift(() =>
         {
-            using var conn = new LiteDatabase(_connectionString);
+            using var conn = GetDb();
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
 
@@ -51,7 +66,7 @@ public class LiteDb : IStorage, IAutoClassifier
     public IO<Unit> Save(Classification classified) =>
         IO.lift(() =>
         {
-            using var conn = new LiteDatabase(_connectionString);
+            using var conn = GetDb();
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
             coll.Insert(new ClassificationDoc(_newObjectId(), classified));
 
@@ -65,7 +80,7 @@ public class LiteDb : IStorage, IAutoClassifier
     public IO<Unit> Save(string description, Category category) =>
         IO.lift(() =>
         {
-            using var db = new LiteDatabase(_connectionString);
+            using var db = GetDb();
             var coll = db.GetCollection(AutoClassificationsCollectionName);
             coll.Upsert(new BsonDocument
             {
