@@ -53,6 +53,40 @@ public static class Utilities
 
 public static class Csv
 {
+    public static Source<CsvLine> StreamLines(string filePath)
+    {
+        var reader = new StreamReader(File.OpenRead(filePath));
+        var head = reader.ReadLine();
+        if (head == null)
+        {
+            return Source<CsvLine>.Empty;
+        }
+
+        var keys = toSeq(csvSplit(head));
+
+        return Source.lift(getLinesFromReader(reader).Select(CreateCsvLine(keys)));
+    }
+    
+    
+    static IEnumerable<string> getLinesFromReader(StreamReader r)
+    {
+        try
+        {
+            while (!r.EndOfStream)
+            {
+                var line = r.ReadLine();
+                if (line != null)
+                {
+                    yield return line;
+                }
+            }
+        }
+        finally
+        {
+            r.Dispose();
+        }
+    }
+    
     public static IO<CsvFile> ParseFile(string filePath)
         => IO.lift(() => File.ReadAllText(filePath))
              .Map(ParseText)
