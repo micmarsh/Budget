@@ -9,6 +9,8 @@ public static class RegisterSerializers
     {
         var mapper = BsonMapper.Global;
         mapper.RegisterType(serializeSeq<SubCategorized>(mapper), deserializeSeq<SubCategorized>(mapper));
+        mapper.RegisterType(serializeSeq<History>(mapper), deserializeSeq<History>(mapper));
+
         mapper.RegisterType(
             serialize: c => new BsonDocument
             {
