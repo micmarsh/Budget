@@ -29,7 +29,7 @@ public static class Database
     
     public static readonly IO<ConfigData> config = +readDefaultConfig
         .Catch(e => 
-            //todo some kind of caching/memoization to prevent multiple prints
+            //todo some kind of caching/memoization to prevent multiple prints?
         IO.lift(() =>
         {
             System.Console.WriteLine(
@@ -44,7 +44,7 @@ public static class Database
     public static readonly IO<string> readDbFilePath = config.Map(c => c.DbLocation);
 
     public static IO<Unit> setDbFilePath(string dbFilePath) =>
-        from config in config
+        from config in readDefaultConfig.Catch(_ => ConfigDefaults.ConfigData)
         let withPath = config with { DbLocation = dbFilePath }
         from text in serialize(withPath)
                     // usage of ConfigDefaults.FilePath assumes that's where readDefaultConfig reads from!
