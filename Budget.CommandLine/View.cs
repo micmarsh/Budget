@@ -38,6 +38,12 @@ public static class View
         DefaultValueFactory = factory(_ => Database.readDbFilePath.RunSafe()),
         Required = false
     };
+    
+    //todo move this somewhere
+    private static readonly System.CommandLine.Option<bool> SetDb = new("--set-db")
+    {
+        Required = false
+    };
 
     private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
 
@@ -47,21 +53,28 @@ public static class View
                 .AddOption(DbString)
                 .AddOption(SingleMonthOpt)
                 .AddOption(SingleYearOpt)
-                .WithAction((dbString, month, year) => Prelude.bracketIO(IO.lift(() => new LiteDBExport(dbString)),
-                    exporter => exporter.ExportClassifications()
-                        .Filter(c => c.Date.Month == (int)month && c.Date.Year == (int)year)
-                        .Reduce(HashMap<Category, decimal>.Empty, (map, c) =>
-                            c.Category.Match(
-                                category => map.AddOrUpdate(new Category(category), total => total + c.Amount,
-                                    c.Amount),
-                                None: () => map))
-                        .Bind(map => map.AsIterable().OrderBy(pair => pair.Key.Value) //todo get this (and everything else) in order lol
-                            .AsIterable()
-                            .Traverse(pair => log($"{pair.Key.Value}: {pair.Value}")))
-                        .Map(Prelude.ignore),
-                    exporter => IO.lift(exporter.Dispose)).As()
-                )
+                .AddOption(SetDb)
+                .WithAction((dbString, month, year, shouldSetDb) => 
+                    RunView(dbString, month, year) >> 
+                    (shouldSetDb ? Database.setDbFilePath(dbString) : Prelude.unitIO))
             );
+
+    private static IO<Unit> RunView(string dbString, Month month, uint year)
+    {
+        return Prelude.bracketIO(IO.lift(() => new LiteDBExport(dbString)),
+            exporter => exporter.ExportClassifications()
+                .Filter(c => c.Date.Month == (int)month && c.Date.Year == (int)year)
+                .Reduce(HashMap<Category, decimal>.Empty, (map, c) =>
+                    c.Category.Match(
+                        category => map.AddOrUpdate(new Category(category), total => total + c.Amount,
+                            c.Amount),
+                        None: () => map))
+                .Bind(map => map.AsIterable().OrderBy(pair => pair.Key.Value) //todo get this (and everything else) in order lol
+                    .AsIterable()
+                    .Traverse(pair => log($"{pair.Key.Value}: {pair.Value}")))
+                .Map(Prelude.ignore),
+            exporter => IO.lift(exporter.Dispose)).As();
+    }
 }
 
 public enum Month
