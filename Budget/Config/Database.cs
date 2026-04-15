@@ -3,6 +3,7 @@ using System.Text.Json;
 namespace Budget.Config;
 using LanguageExt;
 using static LanguageExt.Prelude;
+using static LanguageExt.Json<LanguageExt.IO>;
 
 public static class Database
 {
@@ -15,10 +16,8 @@ public static class Database
     public static readonly IO<ConfigData> config = IO.lift(() =>
     {
         Directory.CreateDirectory(ConfigDirectory);
-        var file = File.Open(Path.Join(ConfigDirectory, DataFile), FileMode.OpenOrCreate);
-        return JsonSerializer.Deserialize<ConfigData>(file) ??
-               throw new Exception("Configuration data deserialized to null");
-    });
+        return File.Open(Path.Join(ConfigDirectory, DataFile), FileMode.OpenOrCreate);
+    }).Bind(deserialize<ConfigData>);
 
     // begin database stuff
     
