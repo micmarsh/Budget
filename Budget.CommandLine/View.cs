@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Budget.Config;
 using Budget.Migration.Export;
 using CommandLine.Immutable;
 using LanguageExt;
@@ -34,7 +35,8 @@ public static class View
 
     private static readonly System.CommandLine.Option<string> DbString = new("-db")
     {
-        Required = true
+        DefaultValueFactory = factory(_ => Database.readDbFilePath.RunSafe()),
+        Required = false
     };
 
     private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
