@@ -1,4 +1,3 @@
-using System.CommandLine;
 using Budget.Config;
 using Budget.Migration.Export;
 using CommandLine.Immutable;
@@ -38,12 +37,6 @@ public static class View
         DefaultValueFactory = factory(_ => Database.readDbFilePath.RunSafe()),
         Required = false
     };
-    
-    //todo move this somewhere
-    private static readonly System.CommandLine.Option<bool> SetDb = new("--set-db")
-    {
-        Required = false
-    };
 
     private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
 
@@ -53,10 +46,9 @@ public static class View
                 .AddOption(DbString)
                 .AddOption(SingleMonthOpt)
                 .AddOption(SingleYearOpt)
-                .AddOption(SetDb)
+                .AddOption(Shared.SetDb)
                 .WithAction((dbString, month, year, shouldSetDb) => 
-                    RunView(dbString, month, year) >> 
-                    (shouldSetDb ? Database.setDbFilePath(dbString) : Prelude.unitIO))
+                    RunView(dbString, month, year) >> Shared.maybeSetDbPath(shouldSetDb, dbString))
             );
 
     private static IO<Unit> RunView(string dbString, Month month, uint year)
