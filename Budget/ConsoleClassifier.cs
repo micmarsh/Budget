@@ -9,14 +9,14 @@ namespace Budget;
 
 public static class ConsoleClassifier
 {
-    public static Eff<Runtime, Unit> Create(CsvInfo input) =>
-        from state in restoreLastState(input)
+    public static Eff<Runtime, Unit> Create(string filePath, CsvInfo input) =>
+        from state in restoreLastState(filePath, input)
         from _1 in UserClassification.classifyAll(state.Categories, state.LineItems)
         select unit;
 
-    public static Eff<Runtime, (Seq<CategorySelectOption> Categories, Seq<LineItem> LineItems)> restoreLastState(CsvInfo input) =>
+    public static Eff<Runtime, (Seq<CategorySelectOption> Categories, Seq<LineItem> LineItems)> restoreLastState(string filePath, CsvInfo input) =>
         from rt in askE<Runtime>()
-        from csvLines in rt.FileReads.GetFileText(input.FilePath).Map(Csv.ParseText)
+        from csvLines in rt.FileReads.GetFileText(filePath).Map(Csv.ParseText)
         let parsedCsv = parseCsvLines(input, csvLines)
         from _ in guard(parsedCsv.Errors.IsEmpty, Error.Many(parsedCsv.Errors)) // comment this out if blocking too much
         from lastSaved in rt.Storage.GetLatest()
@@ -24,11 +24,11 @@ public static class ConsoleClassifier
         select (lastSaved.Categories, lineItems);
 
     //todo "save" this once this whole thing is deleted
-    public static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInfo info, CsvLines lines)
+    private static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInfo info, CsvLines lines)
         => lines.Lines.Map(line =>   
                 (getDescription(info, line), getAmount(info, line), getDate(info, line))
-                .Apply((desc, amount, date) => new LineItem(desc, amount, date)))
-            .Map(v => v.As().ToFin())
+                .Apply((desc, amount, date) => new LineItem(desc, amount, date))
+                .As().ToFin())
             .Partition();
 
     private static Validation<Error, DateTime> getDate(CsvInfo info, CsvLine line) => 
@@ -60,4 +60,4 @@ public static class ConsoleClassifier
     }
 }
 
-public record CsvInfo(string FilePath, string DescriptionField, string AmountField, string DateField, string BackupDescription = "");
+public readonly record struct CsvInfo(string DescriptionField, string AmountField, string DateField, string BackupDescription = "");

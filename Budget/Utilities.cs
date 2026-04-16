@@ -64,7 +64,7 @@ public static class Csv
 
         var keys = toSeq(csvSplit(head));
 
-        return Source.lift(getLinesFromReader(reader).Select(CreateCsvLine(keys)));
+        return Source.lift(getLinesFromReader(reader).Select(CreateCsvLine(keys, false)));
     }
     
     
@@ -98,14 +98,14 @@ public static class Csv
                           (head, tail) =>
                           {
                               var keys = toSeq(csvSplit(head));
-                              return new CsvLines(tail.Map(CreateCsvLine(keys)), keys);
+                              return new CsvLines(tail.Map(CreateCsvLine(keys, true)), keys);
                           });
     
-    private static Func<string, int, CsvLine> CreateCsvLine(Seq<string> keys) 
+    private static Func<string, int, CsvLine> CreateCsvLine(Seq<string> keys, bool includesHeader) 
         => (lineString, linesIndex) =>
            {
                var values = csvSplit(lineString);
-               var lineNumber = (uint) linesIndex + 2; // + 2 b/c line 1 should always be header, and index is of course 0-indexed
+               var lineNumber = (uint) (linesIndex + (includesHeader ? 2 : 1)); // + 2 b/c line 1 should always be header, and index is of course 0-indexed
                var fields = keys.Zip(values).ToMap();
                if (keys.Length == values.Length)
                {

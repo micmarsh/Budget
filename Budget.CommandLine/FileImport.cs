@@ -78,8 +78,9 @@ public static class FileImport
                     Prelude.unitIO));
 
     private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF, string backupF)
-        // => 
-    {
-        return IO.lift(() => System.Console.WriteLine($"TODO: actual import app! current args {file}, {dbString}, {descF}, {amountF}, {dateF}, {backupF}"));
-    }
+        => throw new NotImplementedException();
+
+    // {
+    //     Csv.StreamLines(file.FullName)
+    // }
 }

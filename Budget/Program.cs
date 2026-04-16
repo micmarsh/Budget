@@ -28,8 +28,7 @@ var fileHash = fileReads.GetFileText(csvPath).Map(createHash).Run();
 var liteDbString = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + $"/BudgetDb.{fileHash}.db";
 
 var liteDbStorage = new LiteDb(liteDbString, ObjectId.NewObjectId);
-ConsoleClassifier.Create(new CsvInfo(
-    FilePath: csvPath,
+ConsoleClassifier.Create(csvPath, new CsvInfo(
     DescriptionField: "Payee Name",
     AmountField: "Amount",
     DateField: "Date",
