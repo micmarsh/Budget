@@ -23,7 +23,8 @@ public static class ConsoleClassifier
         let lineItems = fastForward(lastSaved, parsedCsv.LineItems)
         select (lastSaved.Categories, lineItems);
 
-    private static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInfo info, CsvLines lines)
+    //todo "save" this once this whole thing is deleted
+    public static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInfo info, CsvLines lines)
         => lines.Lines.Map(line =>   
                 (getDescription(info, line), getAmount(info, line), getDate(info, line))
                 .Apply((desc, amount, date) => new LineItem(desc, amount, date)))

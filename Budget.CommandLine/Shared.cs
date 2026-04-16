@@ -6,10 +6,12 @@ namespace Budget.CommandLine;
 
 public static class Shared
 {
-    public static readonly System.CommandLine.Option<string> DbString = new("-db")
+    public static readonly System.CommandLine.Option<FileInfo> DbString = new("-db")
     {
         Description = "Database file to use (currently LiteDb only, possible for forseeable future)",
-        DefaultValueFactory = factory(_ => Database.readDbFilePath.RunSafe()),
+        DefaultValueFactory = factory(_ => Database.readDbFilePath
+            .Map(str => new FileInfo(str))
+            .RunSafe()),
         Required = false
     };
     
@@ -20,6 +22,6 @@ public static class Shared
         Required = false
     };
 
-    public static IO<Unit> maybeSetDbPath(bool shouldSetDb, string dbString) =>
+    public static IO<Unit> maybeSetDbPath(bool shouldSetDb, FileInfo dbString) =>
         shouldSetDb ? Database.setDbFilePath(dbString) : Prelude.unitIO;
 }

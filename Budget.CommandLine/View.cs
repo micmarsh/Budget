@@ -43,7 +43,7 @@ public static class View
                 .AddOption(SingleYearOpt)
                 .AddOption(Shared.SetDb)
                 .WithAction((dbString, month, year, shouldSetDb) => 
-                    RunView(dbString, month, year) >> Shared.maybeSetDbPath(shouldSetDb, dbString))
+                    RunView(dbString.FullName, month, year) >> Shared.maybeSetDbPath(shouldSetDb, dbString))
             );
 
     private static IO<Unit> RunView(string dbString, Month month, uint year)

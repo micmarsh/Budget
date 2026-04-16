@@ -7,5 +7,5 @@ public static class Database
 {
     public static readonly IO<string> readDbFilePath = configWithWarning.Map(c => c.DbLocation);
 
-    public static IO<Unit> setDbFilePath(string dbFilePath) => setConfig(DbLocation: dbFilePath);
+    public static IO<Unit> setDbFilePath(FileInfo dbFilePath) => setConfig(DbLocation: dbFilePath.FullName);
 }
