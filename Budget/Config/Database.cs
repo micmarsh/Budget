@@ -6,10 +6,10 @@ using static ConfigDefaults;
 
 public static class Database
 {
-    public static readonly IO<string> readDbFilePath = config.Map(c => c.DbLocation);
+    public static readonly IO<string> readDbFilePath = configWithWarning.Map(c => c.DbLocation);
 
     public static IO<Unit> setDbFilePath(string dbFilePath) =>
-        from config in readDefaultConfig.Catch(_ => ConfigDefaults.ConfigData)
+        from config in config.Catch(_ => ConfigDefaults.ConfigData)
         let withPath = config with { DbLocation = dbFilePath }
         from text in serialize(withPath)
                     // usage of ConfigDefaults.FilePath assumes that's where readDefaultConfig reads from!

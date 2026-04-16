@@ -30,7 +30,13 @@ public static class FileImport
     {
         Description = $"An alternative to {DescriptionField.Name} for the app to use if a particular row value is null or whitespace"
     };
-    
+
+    private static System.CommandLine.Option<bool> SetCsvConfig = new("--set-csv", "-sc")
+    {
+        Description = $"Use to save the csv columns names specified on other arguments to configuration to be automatically used " +
+                      $"without manually specifying any.",
+        Required = false
+    };
     
     public static readonly ICmd Command = 
         Cmd.New("import", "Import a CSV file (typically exported from your bank) " + 
