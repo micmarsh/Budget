@@ -1,5 +1,6 @@
 using CommandLine.Immutable;
 using LanguageExt;
+using static CommandLine.Immutable.Parsing;
 
 namespace Budget.CommandLine;
 
@@ -13,7 +14,10 @@ public static class FileImport
 
     private static System.CommandLine.Option<string> DescriptionField = new("--description-field", "-desc")
     {
-        Description = "The column name in the provided CSV to use as the description/label for the transaction."
+        Description = "The column name in the provided CSV to use as the description/label for the transaction.",
+        // DefaultValueFactory = factory(arg => arg.Tokens.Match(
+        //     () => Prelude.Pure("")
+        //     ))
     };
     
     private static System.CommandLine.Option<string> AmountField = new("--amount-field", "-am")
@@ -43,8 +47,13 @@ public static class FileImport
                           "into the database to be classified later. Will automatically run " + 
                           "(TODO: link actual 'clean cmd.Name') to deal with potential duplicates after")
             .AddOption(Shared.DbString)
+            .AddOption(DescriptionField)
+            .AddOption(AmountField)
+            .AddOption(DateField)
+            .AddOption(BackupDescription)
             .AddOption(Shared.SetDb)
-            .WithAction((dbString, setDb) => 
+            .AddOption(SetCsvConfig)
+            .WithAction((dbString, descF, amountF, dateF, backupF, setDb, setCsv) => 
                 IO.lift(() => System.Console.WriteLine($"TODO: actual import app! current args {dbString}, {setDb}")) 
                 >> Shared.maybeSetDbPath(setDb, dbString));
 }
