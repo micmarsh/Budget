@@ -77,10 +77,30 @@ public static class FileImport
                     ConfigDefaults.setConfig(Csv: new CsvConfigData(descF, amountF, dateF, backupF)) : 
                     Prelude.unitIO));
 
-    private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF, string backupF)
-        => throw new NotImplementedException();
+    //todo utilize some nice, re-usable method like instead of this internal thing (there's currently a couple in "User Classification")
+    // also need an error or warning version of this
+    private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
+    
+    private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF,
+        string backupF)
+        => Csv.StreamLines(file.FullName)
+            .Map(ConsoleClassifier.parseCsvLine(new CsvInfo(descF, amountF, dateF, backupF)))
+            .ReduceIO(new ParseResults(Seq<LineItem>.Empty, DateTime.MaxValue, DateTime.MinValue), handleLineItemResult)
+            .Bind(results => log("TADA: ") >> log(results))
+            .Map(_ => Prelude.unit);
 
-    // {
-    //     Csv.StreamLines(file.FullName)
-    // }
+    private static IO<Reduced<ParseResults>> handleLineItemResult(ParseResults state, Fin<LineItem> input) =>
+        input.Match(
+            lineItem => Reduced.ContinueIO(state.Add(lineItem)),
+            e => log(e.Message) * (_ => Reduced.Continue(state))
+        );
+    
+    private readonly record struct ParseResults(Seq<LineItem> LineItems, DateTime MinDate, DateTime MaxDate)
+    {
+        public ParseResults Add(LineItem lineItem) => new(
+            LineItems.Add(lineItem),
+            lineItem.Date < MinDate ? lineItem.Date : MinDate,
+            lineItem.Date > MaxDate ? lineItem.Date : MaxDate
+        );
+    };
 }

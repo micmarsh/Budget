@@ -25,11 +25,12 @@ public static class ConsoleClassifier
 
     //todo "save" this once this whole thing is deleted
     private static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInfo info, CsvLines lines)
-        => lines.Lines.Map(line =>   
-                (getDescription(info, line), getAmount(info, line), getDate(info, line))
-                .Apply((desc, amount, date) => new LineItem(desc, amount, date))
-                .As().ToFin())
-            .Partition();
+        => lines.Lines.Map(parseCsvLine(info)).Partition();
+
+    public static Func<CsvLine, Fin<LineItem>> parseCsvLine(CsvInfo info) => line =>
+        (getDescription(info, line), getAmount(info, line), getDate(info, line))
+        .Apply((desc, amount, date) => new LineItem(desc, amount, date))
+        .As().ToFin();
 
     private static Validation<Error, DateTime> getDate(CsvInfo info, CsvLine line) => 
         line.Fields.Find(info.DateField)
