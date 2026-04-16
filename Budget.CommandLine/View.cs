@@ -32,6 +32,7 @@ public static class View
             .ToFin(Error.New($"Unable to match '{arg.Tokens[0].Value}' to a month")))
     };
 
+    //todo utilize some nice, re-usable method like instead of this internal thing (there's currently a couple in "User Classification")
     private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
 
     public static readonly ICmd Command =

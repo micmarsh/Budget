@@ -6,14 +6,17 @@ namespace Budget.CommandLine;
 
 public static class Shared
 {
-    internal static readonly System.CommandLine.Option<bool> SetDb = new("--set-db")
+    public static readonly System.CommandLine.Option<string> DbString = new("-db")
     {
+        Description = "Database file to use (currently LiteDb only, possible for forseeable future)",
+        DefaultValueFactory = factory(_ => Database.readDbFilePath.RunSafe()),
         Required = false
     };
     
-    public static readonly System.CommandLine.Option<string> DbString = new("-db")
+    internal static readonly System.CommandLine.Option<bool> SetDb = new("--set-db")
     {
-        DefaultValueFactory = factory(_ => Database.readDbFilePath.RunSafe()),
+        Description = $"Use to save the value specified in `{DbString.Name}` to configuration to be automatically used " +
+                      $"without specifying, for this or any other command that utilizes `{DbString.Name}`",
         Required = false
     };
 
