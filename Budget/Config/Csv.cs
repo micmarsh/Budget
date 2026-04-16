@@ -4,11 +4,8 @@ using static LanguageExt.Prelude;
 
 namespace Budget.Config;
 
+//todo probably delete this, excessive abstraction at this point?
 public static class Csv
 {
-    private static readonly Atom<Option<CsvConfigData>> cachedConfigData = Atom<Option<CsvConfigData>>(None);
-
-    public static IO<Option<CsvConfigData>> getConfig = IO
-        .lift(() => cachedConfigData.Swap(opt => 
-            opt.Match(v => v, () => configWithWarning.Run().Csv)));
+    public static IO<Option<CsvConfigData>> getConfig = configWithWarning.Map(c => c.Csv);
 }

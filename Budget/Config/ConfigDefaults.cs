@@ -1,4 +1,5 @@
 using LanguageExt;
+using LanguageExt.UnsafeValueAccess;
 using static LanguageExt.Prelude;
 using static LanguageExt.Json<LanguageExt.IO>;
 
@@ -15,13 +16,12 @@ public static class ConfigDefaults
 
     public static readonly ConfigData ConfigData = new(DatabasePath, None);
 
-    public static readonly IO<ConfigData> config = IO
+    private static readonly IO<ConfigData> config = IO
         .lift(() => File.ReadAllText(FilePath))
         .Bind(deserialize<ConfigData>);
     
-    public static readonly IO<ConfigData> configWithWarning = +config
+    private static readonly IO<ConfigData> ConfigWithWarningInternal = +config
         .Catch(e => 
-            //todo some kind of caching/memoization to prevent multiple prints?
             IO.lift(() =>
             {
                 System.Console.WriteLine(
@@ -29,9 +29,16 @@ public static class ConfigDefaults
                     $"Using default config {ConfigData} instead, data may not be read or saved as expected");
                 return ConfigData;
             }));
+
+    private static readonly Atom<Option<ConfigData>> _cachedConfigData = Atom<Option<ConfigData>>(None);
+    
+    public static readonly IO<ConfigData> configWithWarning = IO.lift(() =>
+        _cachedConfigData.Swap(opt =>
+            opt.Match(v => v, () => ConfigWithWarningInternal.Run()))
+            .ValueUnsafe());
     
     public static IO<Unit> setConfig(string? DbLocation = null, Option<CsvConfigData> Csv = default) =>
-        from config in config.Catch(_ => ConfigData)
+        from config in configWithWarning
         let withPath = config with
         {
             DbLocation = DbLocation ?? config.DbLocation,
@@ -41,11 +48,4 @@ public static class ConfigDefaults
         // usage of ConfigDefaults.FilePath assumes that's where readDefaultConfig reads from!
         from _1 in IO.lift(() => File.WriteAllText(FilePath, text))
         select unit;
-
-    // private static IO<CsvConfigData> createCsvConfig(string? descriptionField, string? amountField,
-    //     string? dateField, string? backupDescriptionField) =>
-    //     (Optional(descriptionField), Optional(amountField), Optional(dateField), Optional(backupDescriptionField))
-    //     .Apply((d, a, dt, b) => new CsvConfigData(d, a, dt, b))
-    //     .As()
-    //     .Match(Some: IO.lift, None: () => IO.fail<CsvConfigData>(Error.New()));
 }
