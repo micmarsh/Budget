@@ -32,18 +32,12 @@ public static class View
             .ToFin(Error.New($"Unable to match '{arg.Tokens[0].Value}' to a month")))
     };
 
-    private static readonly System.CommandLine.Option<string> DbString = new("-db")
-    {
-        DefaultValueFactory = factory(_ => Database.readDbFilePath.RunSafe()),
-        Required = false
-    };
-
     private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
 
     public static readonly ICmd Command =
         Cmd.New("view", "View spending/income for a month, range of months, or overall averages")
             .AddSub(Cmd.New("month", "View spending/income for a single month")
-                .AddOption(DbString)
+                .AddOption(Shared.DbString)
                 .AddOption(SingleMonthOpt)
                 .AddOption(SingleYearOpt)
                 .AddOption(Shared.SetDb)
