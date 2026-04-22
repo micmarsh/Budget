@@ -78,7 +78,7 @@ public static class FileImport
                     Prelude.unitIO));
 
     //todo utilize some nice, re-usable method like instead of this internal thing (there's currently a couple in "User Classification")
-    // also need an error or warning version of this
+    // also need an error or warning version of this, does/could that exist in CommandLine LanguageExt library?
     private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
     
     private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF,
