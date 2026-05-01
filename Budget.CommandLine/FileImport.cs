@@ -16,14 +16,14 @@ public static class FileImport
     };
 
     private static Func<ArgumentResult, Fin<T>> GetDefaultValueFactory<T>(string argName, Func<CsvConfigData, T> getString) =>
-        arg => arg.Tokens.Match(
-            () => Config.Csv.getConfig
+        arg => arg.Tokens switch {
+            [] => Config.Csv.getConfig
                 .RunSafe()
                 //todo see how this works when attempting to print default values? ugly?
                 .Bind(c => c.Map(getString).ToFin(Error.New($"{argName} is required but not provided, " +
                                                             $"and there was an error reading default from config"))),
-            (token, _) => arg.GetValueOrDefault<T>()
-        );
+             _ => arg.GetValueOrDefault<T>()
+        };
     
     private static System.CommandLine.Option<string> DescriptionField = new("--description-field", "-desc")
     {
