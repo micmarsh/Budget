@@ -43,13 +43,9 @@ public static class FileImport
         DefaultValueFactory = factory(GetDefaultValueFactory("--date-field", c => c.DateField))
     };
     
-    //todo not require this and somehow fallback to regular description?
-    private static System.CommandLine.Option<string> BackupDescription = new("--backup-description", "-bd")
-    {
-        Description = $"An alternative to {DescriptionField.Name} for the app to use if a particular row value is null or whitespace",
-    //    DefaultValueFactory = GetDefaultValueFactory("--backup-description", c => c.BackupDescriptionField),
-        Required = false
-    };
+    private static System.CommandLine.Option<Option<string>> BackupDescription = OptionalInput.Opt<string>("--backup-description", "-bd")
+        .With(Description: $"An alternative to {DescriptionField.Name} for the app to use if a particular row value is null or whitespace");
+
 
     private static System.CommandLine.Option<bool> SetCsvConfig = new("--set-csv")
     {
@@ -81,10 +77,11 @@ public static class FileImport
     // also need an error or warning version of this, does/could that exist in CommandLine LanguageExt library?
     private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
     
-    private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF,
-        string backupF)
+    private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF, 
+        Option<string> backupF)
         => Csv.StreamLines(file.FullName)
-            .Map(ConsoleClassifier.parseCsvLine(new CsvInfo(descF, amountF, dateF, backupF)))
+            .Map(ConsoleClassifier.parseCsvLine(new CsvInfo(descF, amountF, dateF, 
+                backupF.IfNone(descF))))
             .ReduceIO(new ParseResults(Seq<LineItem>.Empty, DateTime.MaxValue, DateTime.MinValue), handleLineItemResult)
             .Bind(results => log("TADA: ") >> log(results))
             .Map(_ => Prelude.unit);

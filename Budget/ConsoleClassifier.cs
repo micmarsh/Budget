@@ -41,7 +41,7 @@ public static class ConsoleClassifier
         line.Fields.Find(info.AmountField)
             .Bind(parseDecimal)
             .ToValidation(Error.New($"Line {line.LineNumber} missing or invalid amount field"));
-
+    
     private static Validation<Error, string> getDescription(CsvInfo info, CsvLine line) =>
         line.Fields.Find(info.DescriptionField)
             .Filter(desc => ! string.IsNullOrWhiteSpace(desc))
