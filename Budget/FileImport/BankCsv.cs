@@ -32,7 +32,6 @@ public static class BankCsv
             .Catch((Unit _) => line.Fields.Find(input.BackupDescription)).As()
             .Filter(desc => ! string.IsNullOrWhiteSpace(desc))
             .ToValidation(Error.New($"Line {line.LineNumber} missing description field"));
-
     
     //todo utilize some nice, re-usable method like instead of this internal thing (there's currently a couple in "User Classification")
     // also need an error or warning version of this, does/could that exist in CommandLine LanguageExt library?

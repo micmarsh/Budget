@@ -1,9 +1,13 @@
 using System.CommandLine.Parsing;
 using Budget.Config;
 using Budget.FileImport;
+using Budget.Migration;
+using Budget.Migration.Import;
+using Budget.Services.Storage.LiteDB;
 using CommandLine.Immutable;
 using LanguageExt;
 using LanguageExt.Common;
+using LiteDB;
 using static CommandLine.Immutable.Parsing;
 
 namespace Budget.CommandLine;
@@ -74,13 +78,16 @@ public static class FileImport
                 (setCsv ? 
                     ConfigDefaults.setConfig(Csv: new CsvConfigData(descF, amountF, dateF, backupF)) : 
                     Prelude.unitIO));
-
-    //todo utilize some nice, re-usable method like instead of this internal thing (there's currently a couple in "User Classification")
-    // also need an error or warning version of this, does/could that exist in CommandLine LanguageExt library?
-    private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
     
     private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF, string backupF)
         => BankCsv.parseBankCsv(file, descF, amountF, dateF, backupF)
-            .Bind(results => log("TADA: ") >> log(results))
+            .Bind(results => new LiteDBImport(dbString.Name)
+                .WriteAll(LineItemsToImportable(results.LineItems)))
             .Map(_ => Prelude.unit);
+
+    private static Seq<FlatClassification> LineItemsToImportable(Seq<LineItem> lineItems) =>
+        lineItems
+            .Map(lineItem => new UnCategorized(lineItem))
+            .Map(c => ClassificationDoc.NewAdd(ObjectId.NewObjectId(), DateTime.Now, c))
+            .Bind(c => LiteDbUtils.ConvertToRows(c).ToSeq());
 }

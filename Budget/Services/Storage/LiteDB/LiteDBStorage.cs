@@ -70,8 +70,7 @@ public class LiteDb : IStorage, IAutoClassifier
             using var conn = GetDb();
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
             var categorySelectOptions = CategorySelectOption.Create(classified);
-            coll.Insert(new ClassificationDoc(_newObjectId(), classified, Seq<History>(new Added(now))
-                .Concat(categorySelectOptions.Map(opt => new Classified(opt.Category, now)))));
+            coll.Insert(ClassificationDoc.NewAdd(_newObjectId(), now, classified));
 
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
             catsColl.Upsert(categorySelectOptions);
