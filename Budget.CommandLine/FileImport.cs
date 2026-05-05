@@ -1,5 +1,6 @@
 using System.CommandLine.Parsing;
 using Budget.Config;
+using Budget.FileImport;
 using CommandLine.Immutable;
 using LanguageExt;
 using LanguageExt.Common;
@@ -79,25 +80,8 @@ public static class FileImport
     
     private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF, 
         Option<string> backupF)
-        => Csv.StreamLines(file.FullName)
-            .Map(ConsoleClassifier.parseCsvLine(new CsvInfo(descF, amountF, dateF, 
-                backupF.IfNone(descF))))
-            .ReduceIO(new ParseResults(Seq<LineItem>.Empty, DateTime.MaxValue, DateTime.MinValue), handleLineItemResult)
+        =>
+            BankCsv.parseBankCsv(file, descF, amountF, dateF, backupF)
             .Bind(results => log("TADA: ") >> log(results))
             .Map(_ => Prelude.unit);
-
-    private static IO<Reduced<ParseResults>> handleLineItemResult(ParseResults state, Fin<LineItem> input) =>
-        input.Match(
-            lineItem => Reduced.ContinueIO(state.Add(lineItem)),
-            e => log(e.Message) * (_ => Reduced.Continue(state))
-        );
-    
-    private readonly record struct ParseResults(Seq<LineItem> LineItems, DateTime MinDate, DateTime MaxDate)
-    {
-        public ParseResults Add(LineItem lineItem) => new(
-            LineItems.Add(lineItem),
-            lineItem.Date < MinDate ? lineItem.Date : MinDate,
-            lineItem.Date > MaxDate ? lineItem.Date : MaxDate
-        );
-    };
 }

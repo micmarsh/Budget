@@ -1,3 +1,4 @@
+using Budget.FileImport;
 using LanguageExt;
 using LanguageExt.Common;
 using LanguageExt.Traits;
@@ -9,12 +10,12 @@ namespace Budget;
 
 public static class ConsoleClassifier
 {
-    public static Eff<Runtime, Unit> Create(string filePath, CsvInfo input) =>
+    public static Eff<Runtime, Unit> Create(string filePath, CsvInput input) =>
         from state in restoreLastState(filePath, input)
         from _1 in UserClassification.classifyAll(state.Categories, state.LineItems)
         select unit;
 
-    public static Eff<Runtime, (Seq<CategorySelectOption> Categories, Seq<LineItem> LineItems)> restoreLastState(string filePath, CsvInfo input) =>
+    public static Eff<Runtime, (Seq<CategorySelectOption> Categories, Seq<LineItem> LineItems)> restoreLastState(string filePath, CsvInput input) =>
         from rt in askE<Runtime>()
         from csvLines in rt.FileReads.GetFileText(filePath).Map(Csv.ParseText)
         let parsedCsv = parseCsvLines(input, csvLines)
@@ -23,32 +24,10 @@ public static class ConsoleClassifier
         let lineItems = fastForward(lastSaved, parsedCsv.LineItems)
         select (lastSaved.Categories, lineItems);
 
-    //todo "save" this once this whole thing is deleted
-    private static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInfo info, CsvLines lines)
-        => lines.Lines.Map(parseCsvLine(info)).Partition();
-
-    public static Func<CsvLine, Fin<LineItem>> parseCsvLine(CsvInfo info) => line =>
-        (getDescription(info, line), getAmount(info, line), getDate(info, line))
-        .Apply((desc, amount, date) => new LineItem(desc, amount, date))
-        .As().ToFin();
-
-    private static Validation<Error, DateTime> getDate(CsvInfo info, CsvLine line) => 
-        line.Fields.Find(info.DateField)
-            .Bind(parseDateTime)
-            .ToValidation(Error.New($"Line {line.LineNumber} has an invalid date field"));
-
-    private static Validation<Error, decimal> getAmount(CsvInfo info, CsvLine line) => 
-        line.Fields.Find(info.AmountField)
-            .Bind(parseDecimal)
-            .ToValidation(Error.New($"Line {line.LineNumber} missing or invalid amount field"));
+    //todo "save" this once this whole thing is deleted? We'll see
+    private static (Seq<Error> Errors, Seq<LineItem> LineItems) parseCsvLines(CsvInput input, CsvLines lines)
+        => lines.Lines.Map(BankCsv.parseCsvLine(input)).Partition();
     
-    private static Validation<Error, string> getDescription(CsvInfo info, CsvLine line) =>
-        line.Fields.Find(info.DescriptionField)
-            .Filter(desc => ! string.IsNullOrWhiteSpace(desc))
-            .Catch((Unit _) => line.Fields.Find(info.BackupDescription)).As()
-            .Filter(desc => ! string.IsNullOrWhiteSpace(desc))
-            .ToValidation(Error.New($"Line {line.LineNumber} missing description field"));
-
     private static Seq<LineItem> fastForward(ClassificationsState lastSaved, Seq<LineItem> lineItems)
     {
         var alreadyClassified = lastSaved.OnDate.Map(c => c.LineItem);
@@ -60,5 +39,3 @@ public static class ConsoleClassifier
             });
     }
 }
-
-public readonly record struct CsvInfo(string DescriptionField, string AmountField, string DateField, string BackupDescription = "");
