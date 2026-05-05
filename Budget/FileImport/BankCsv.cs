@@ -6,9 +6,9 @@ namespace Budget.FileImport;
 
 public static class BankCsv
 {
-    public static IO<ParseResults> parseBankCsv(FileInfo file, string descF, string amountF, string dateF, Option<string> backupF) =>
+    public static IO<ParseResults> parseBankCsv(FileInfo file, string descF, string amountF, string dateF, string backupF) =>
         Csv.StreamLines(file.FullName)
-            .Map(BankCsv.parseCsvLine(new CsvInput(descF, amountF, dateF, backupF.IfNone(""))))
+            .Map(parseCsvLine(new CsvInput(descF, amountF, dateF, backupF)))
             .ReduceIO(new ParseResults(LanguageExt.Seq<LineItem>.Empty, DateTime.MaxValue, DateTime.MinValue), handleLineItemResult);
     
     public static Func<CsvLine, Fin<LineItem>> parseCsvLine(CsvInput input) => line =>
