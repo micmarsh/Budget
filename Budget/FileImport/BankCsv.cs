@@ -9,7 +9,7 @@ public static class BankCsv
     public static IO<ParseResults> parseBankCsv(FileInfo file, string descF, string amountF, string dateF, string backupF) =>
         Csv.StreamLines(file.FullName)
             .Map(parseCsvLine(new CsvInput(descF, amountF, dateF, backupF)))
-            .ReduceIO(new ParseResults(LanguageExt.Seq<LineItem>.Empty, DateTime.MaxValue, DateTime.MinValue), handleLineItemResult);
+            .ReduceIO(ParseResults.Empty, handleLineItemResult);
     
     public static Func<CsvLine, Fin<LineItem>> parseCsvLine(CsvInput input) => line =>
         (getDescription(input, line), getAmount(input, line), getDate(input, line))
@@ -43,8 +43,6 @@ public static class BankCsv
             lineItem => Reduced.ContinueIO(state.Add(lineItem)),
             e => log(e.Message) * (_ => Reduced.Continue(state))
         );
-
-
 }
 
 public readonly record struct ParseResults(Seq<LineItem> LineItems, DateTime MinDate, DateTime MaxDate)
@@ -54,6 +52,9 @@ public readonly record struct ParseResults(Seq<LineItem> LineItems, DateTime Min
         lineItem.Date < MinDate ? lineItem.Date : MinDate,
         lineItem.Date > MaxDate ? lineItem.Date : MaxDate
     );
+
+    public static readonly ParseResults Empty =
+        new (LanguageExt.Seq<LineItem>.Empty, DateTime.MaxValue, DateTime.MinValue);
 };
 
 public readonly record struct CsvInput(string DescriptionField, string AmountField, string DateField, string BackupDescription);
