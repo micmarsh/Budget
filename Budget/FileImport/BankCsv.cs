@@ -40,7 +40,7 @@ public static class BankCsv
     private static IO<Reduced<ParseResults>> handleLineItemResult(ParseResults state, Fin<LineItem> input) =>
         input.Match(
             lineItem => Reduced.ContinueIO(state.Add(lineItem)),
-            e => log(e.Message) * (_ => Reduced.Continue(state))
+            e => log(e.Message) >> Reduced.ContinueIO(state)
         );
 }
 

@@ -1,9 +1,9 @@
-using Budget.Config;
 using Budget.Migration.Export;
 using CommandLine.Immutable;
 using LanguageExt;
 using LanguageExt.Common;
 using static CommandLine.Immutable.Parsing;
+using static LanguageExt.Prelude;
 
 namespace Budget.CommandLine;
 
@@ -43,15 +43,14 @@ public static class View
                 .AddOption(SingleYearOpt)
                 .AddOption(Shared.SetDb)
                 .WithAction((dbString, month, year, shouldSetDb) => 
-                    RunView(dbString.FullName, month, year) >> Shared.maybeSetDbPath(shouldSetDb, dbString))
+                    RunView(dbString.FullName, month, year) >> Shared.maybeSetDbPath(shouldSetDb, dbString) * ignore)
             );
 
-    private static IO<Unit> RunView(string dbString, Month month, uint year)
-    {
-        return Prelude.bracketIO(IO.lift(() => new LiteDBExport(dbString)),
+    private static IO<Unit> RunView(string dbString, Month month, uint year) =>
+        bracketIO(IO.lift(() => new LiteDBExport(dbString)),
             exporter => exporter.ExportClassifications()
                 .Filter(c => c.Date.Month == (int)month && c.Date.Year == (int)year)
-                .Reduce(HashMap<Category, decimal>.Empty, (map, c) =>
+                .Reduce(HashMap<Category, decimal>(), (map, c) =>
                     c.Category.Match(
                         category => map.AddOrUpdate(new Category(category), total => total + c.Amount,
                             c.Amount),
@@ -59,9 +58,8 @@ public static class View
                 .Bind(map => map.AsIterable().OrderBy(pair => pair.Key.Value) //todo get this (and everything else) in order lol
                     .AsIterable()
                     .Traverse(pair => log($"{pair.Key.Value}: {pair.Value}")))
-                .Map(Prelude.ignore),
+                .Map(ignore),
             exporter => IO.lift(exporter.Dispose)).As();
-    }
 }
 
 public enum Month
