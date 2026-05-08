@@ -69,11 +69,10 @@ public class LiteDb : IStorage, IAutoClassifier
             var now = DateTime.Now; // todo inject into constructor?
             using var conn = GetDb();
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-            var categorySelectOptions = CategorySelectOption.Create(classified);
             coll.Insert(ClassificationDoc.NewAdd(_newObjectId(), now, classified));
 
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
-            catsColl.Upsert(categorySelectOptions);
+            catsColl.Upsert(CategorySelectOption.Create(classified));
             return unit;
         });
 

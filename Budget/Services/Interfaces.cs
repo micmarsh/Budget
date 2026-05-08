@@ -22,11 +22,17 @@ public interface IHasConsole
     IConsole Console { get; }
 }
 
+//todo rename and re-tool this completely for non-"latest-based" user classification
 public interface IStorage
 {
     IO<ClassificationsState> GetLatest();
     IO<Unit> Save(Classification classified);
    // querying for all is for later!
+}
+
+public interface IClassificationQuery
+{
+    public Source<Classification> GetDateRange(DateTime start, DateTime end);
 }
 
 public interface IAutoClassifier
