@@ -22,6 +22,6 @@ public static class Shared
         Required = false
     };
 
-    public static IO<Unit> maybeSetDbPath(bool shouldSetDb, FileInfo dbString) =>
-        shouldSetDb ? Database.setDbFilePath(dbString) : Prelude.unitIO;
+    public static IO<ConfigData> maybeSetDbPath(bool shouldSetDb, FileInfo dbString) =>
+        shouldSetDb ? Database.setDbFilePath(dbString) : ConfigDefaults.readConfig;
 }

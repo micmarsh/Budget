@@ -16,11 +16,11 @@ public static class ConfigDefaults
 
     public static readonly ConfigData ConfigData = new(DatabasePath, None);
 
-    private static readonly IO<ConfigData> config = IO
+    public static readonly IO<ConfigData> readConfig = IO
         .lift(() => File.ReadAllText(FilePath))
         .Bind(deserialize<ConfigData>);
     
-    private static readonly IO<ConfigData> ConfigWithWarningInternal = +config
+    private static readonly IO<ConfigData> ConfigWithWarningInternal = +readConfig
         .Catch(e => 
             IO.lift(() =>
             {
@@ -36,16 +36,20 @@ public static class ConfigDefaults
         _cachedConfigData.Swap(opt =>
             opt.Match(v => v, () => ConfigWithWarningInternal.Run()))
             .ValueUnsafe());
-    
-    public static IO<Unit> setConfig(string? DbLocation = null, Option<CsvConfigData> Csv = default) =>
+
+    public static IO<ConfigData> setConfig(string? DbLocation = null, Option<CsvConfigData> Csv = default) =>
         from config in configWithWarning
-        let withPath = config with
+        let withUpdates = config with
         {
             DbLocation = DbLocation ?? config.DbLocation,
             Csv = Csv.Match(csv => csv, config.Csv)
         }
-        from text in serialize(withPath)
+        from result in setConfig(withUpdates)
+        select result;
+    
+    public static IO<ConfigData> setConfig(ConfigData configData) => +
+        from text in serialize(configData)
         // usage of ConfigDefaults.FilePath assumes that's where readDefaultConfig reads from!
         from _1 in IO.lift(() => File.WriteAllText(FilePath, text))
-        select unit;
+        select configData;
 }

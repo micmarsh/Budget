@@ -9,6 +9,7 @@ using LanguageExt;
 using LanguageExt.Common;
 using LiteDB;
 using static CommandLine.Immutable.Parsing;
+using static LanguageExt.Prelude;
 
 namespace Budget.CommandLine;
 
@@ -59,10 +60,10 @@ public static class FileImport
                       $"without manually specifying any.",
         Required = false
     };
-    
-    public static readonly ICmd Command = 
-        Cmd.New("import", "Import a CSV file (typically exported from your bank) " + 
-                          "into the database to be classified later. Will automatically run " + 
+
+    public static readonly ICmd Command =
+        Cmd.New("import", "Import a CSV file (typically exported from your bank) " +
+                          "into the database to be classified later. Will automatically run " +
                           "(TODO: link actual 'clean cmd.Name') to deal with potential duplicates after")
             .AddOption(InputFile)
             .AddOption(Shared.DbString)
@@ -72,22 +73,27 @@ public static class FileImport
             .AddOption(BackupDescription)
             .AddOption(Shared.SetDb)
             .AddOption(SetCsvConfig)
-            .WithAction((file, dbString, descF, amountF, dateF, backupF, setDb, setCsv) => 
+            .WithAction((file, dbString, descF, amountF, dateF, backupF, setDb, setCsv) =>
                 RunImport(file, dbString, descF, amountF, dateF, backupF) >>
-                Shared.maybeSetDbPath(setDb, dbString) >>
-                (setCsv ? 
-                    ConfigDefaults.setConfig(Csv: new CsvConfigData(descF, amountF, dateF, backupF)) : 
-                    Prelude.unitIO));
-    
+                maybeSetConfig(setDb, setCsv, dbString, descF, amountF, dateF, backupF));
+
     private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF, string backupF)
-        => BankCsv.parseBankCsv(file, descF, amountF, dateF, backupF)
-            .Bind(results => new LiteDBImport(dbString.Name)
-                .WriteAll(LineItemsToImportable(results.LineItems)))
-            .Map(_ => Prelude.unit);
+        => from csvResults in BankCsv.parseBankCsv(file, descF, amountF, dateF, backupF) 
+            let importer = new LiteDBImport(dbString.Name)
+           from _ in importer.WriteAll(LineItemsToImportable(csvResults.LineItems))
+           select unit;
 
     private static Seq<FlatClassification> LineItemsToImportable(Seq<LineItem> lineItems) =>
         lineItems
             .Map(lineItem => new UnCategorized(lineItem))
             .Map(c => ClassificationDoc.NewAdd(ObjectId.NewObjectId(), DateTime.Now, c))
             .Bind(c => LiteDbUtils.ConvertToRows(c).ToSeq());
+    
+    private static IO<Unit> maybeSetConfig(bool setDb, bool setCsv, FileInfo dbString, string descF, string amountF, string dateF, string backupF) =>
+        from configData in Shared.maybeSetDbPath(setDb, dbString)
+        from _1 in ConfigDefaults.setConfig(configData with
+        {
+            Csv = setCsv ? new CsvConfigData(descF, amountF, dateF, backupF) : configData.Csv
+        })
+        select unit;
 }
