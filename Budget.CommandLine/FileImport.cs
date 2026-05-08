@@ -81,6 +81,16 @@ public static class FileImport
         => from csvResults in BankCsv.parseBankCsv(file, descF, amountF, dateF, backupF) 
             let importer = new LiteDBImport(dbString.Name)
            from _ in importer.WriteAll(LineItemsToImportable(csvResults.LineItems))
+            //todo move this to some 'clean' area
+            from _1 in bracketIO(
+                IO.lift(() => LiteDBQuery.From(dbString.Name)),
+                query => query.GetDateRange(csvResults.MinDate, csvResults.MaxDate)
+                    .Collect()
+                    .Map(seq => seq.GroupBy(c => c.LineItem))
+                    //todo present, give choice(?) and then delete something
+                ,query => IO.lift(query.Dispose))
+            
+            
            select unit;
 
     private static Seq<FlatClassification> LineItemsToImportable(Seq<LineItem> lineItems) =>
