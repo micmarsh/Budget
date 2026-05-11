@@ -1,5 +1,6 @@
 using Budget.Migration.Export;
 using CommandLine.Immutable;
+using ConsoleApps;
 using LanguageExt;
 using LanguageExt.Common;
 using static CommandLine.Immutable.Parsing;
@@ -32,9 +33,6 @@ public static class View
             .ToFin(Error.New($"Unable to match '{arg.Tokens[0].Value}' to a month")))
     };
 
-    //todo utilize some nice, re-usable method like instead of this internal thing (there's currently a couple in "User Classification")
-    private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
-
     public static readonly ICmd Command =
         Cmd.New("view", "View spending/income for a month, range of months, or overall averages")
             .AddSub(Cmd.New("month", "View spending/income for a single month")
@@ -46,6 +44,7 @@ public static class View
                     RunView(dbString.FullName, month, year) >> Shared.maybeSetDbPath(shouldSetDb, dbString) * ignore)
             );
 
+    //todo re-do this to query in-db
     private static IO<Unit> RunView(string dbString, Month month, uint year) =>
         bracketIO(IO.lift(() => new LiteDBExport(dbString)),
             exporter => exporter.ExportClassifications()
@@ -57,7 +56,7 @@ public static class View
                         None: () => map))
                 .Bind(map => map.AsIterable().OrderBy(pair => pair.Key.Value) //todo get this (and everything else) in order lol
                     .AsIterable()
-                    .Traverse(pair => log($"{pair.Key.Value}: {pair.Value}")))
+                    .Traverse(pair => Prompt.logIO($"{pair.Key.Value}: {pair.Value}")))
                 .Map(ignore),
             exporter => IO.lift(exporter.Dispose)).As();
 }

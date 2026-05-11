@@ -1,3 +1,4 @@
+using ConsoleApps;
 using LanguageExt;
 using LanguageExt.Common;
 using static LanguageExt.Prelude;
@@ -33,14 +34,10 @@ public static class BankCsv
             .Filter(desc => ! string.IsNullOrWhiteSpace(desc))
             .ToValidation(Error.New($"Line {line.LineNumber} missing description field"));
     
-    //todo utilize some nice, re-usable method like instead of this internal thing (there's currently a couple in "User Classification")
-    // also need an error or warning version of this, does/could that exist in CommandLine LanguageExt library?
-    private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
-    
     private static IO<Reduced<ParseResults>> handleLineItemResult(ParseResults state, Fin<LineItem> input) =>
         input.Match(
             lineItem => Reduced.ContinueIO(state.Add(lineItem)),
-            e => log(e.Message) >> Reduced.ContinueIO(state)
+            e => Prompt.logIO(e.Message) >> Reduced.ContinueIO(state)
         );
 }
 

@@ -9,10 +9,13 @@ using static Budget.Utilities;
 
 public static class Prompt
 {
-    private readonly record struct ConsoleOnly(IConsole Console) : IHasConsole;
+    private readonly record struct ConsoleOnly(IConsole Console) : IHasConsole
+    {
+        public static readonly ConsoleOnly Default = new (new Console());
+    }
 
     public static IO<A> readValueIO<A>(Func<string, Option<A>> parse, string retryPrompt) =>
-        readValue<ConsoleOnly, A>(parse, retryPrompt).RunIO(new ConsoleOnly(new Console()));
+        readValue<ConsoleOnly, A>(parse, retryPrompt).RunIO(ConsoleOnly.Default);
     
     public static Eff<RT, A> readValue<RT, A>(Func<string, Option<A>> parse, string retryPrompt)
         where RT : IHasConsole =>
@@ -41,7 +44,8 @@ public static class Prompt
                     select r
             )
             select result;
-    
+
+    public static IO<Unit> logIO(string message) => log<ConsoleOnly>(message).RunIO(ConsoleOnly.Default);
     
     public static Eff<RT, Unit> log<RT>(string message)
         where RT : IHasConsole
