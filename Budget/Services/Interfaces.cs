@@ -1,8 +1,9 @@
 using LanguageExt;
+using LiteDB;
 
 namespace Budget;
 
-public record Runtime(IFileReads FileReads, IStorage Storage, IConsole Console, IAutoClassifier AutoClassifier)
+public record Runtime(IFileReads FileReads, IStorage<ObjectId> Storage, IConsole Console, IAutoClassifier AutoClassifier)
     : IHasConsole, IHasAutoClassifier;
 
 public interface IHasAutoClassifier
@@ -22,11 +23,18 @@ public interface IHasConsole
 }
 
 //todo rename and re-tool this completely for non-"latest-based" user classification
-public interface IStorage
+public interface IStorage<DbId>
 {
     IO<ClassificationsState> GetLatest();
     IO<Unit> Save(Classification classified);
    // querying for all is for later!
+   
+    IO<Unit> Delete(Seq<DbId> deleteIds);
+}
+
+public interface IHasStorage<DbId>
+{
+    IStorage<DbId> Storage { get; }
 }
 
 public interface IClassificationQuery<DbId>

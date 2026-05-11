@@ -1,49 +1,72 @@
 using Budget.Services.Storage.LiteDB;
+using ConsoleApps;
 using LanguageExt;
+using LanguageExt.Common;
 using LiteDB;
 using static LanguageExt.Prelude;
+using static ConsoleApps.Prompt;
+using static Budget.Utilities;
 
 namespace Budget.FileImport;
 
 public static class CleanCommand
 {
+    private readonly record struct CleanRT(IConsole Console, IStorage<ObjectId> Storage) 
+        : IHasConsole, IHasStorage<ObjectId>;
+    
     public static IO<Unit> Run(FileInfo dbString, DateTime startRange, DateTime endRange)
     {
         var storage = new LiteDb(dbString.Name, ObjectId.NewObjectId);
-        return 
-            from groups in lookupAndGroup(startRange, endRange, storage)
+        return (
+            from groups in lookupAndGroup(startRange, endRange, storage) * (g => g.Filter(cs => cs.Count > 1))
+            from _0 in guard(groups.Count > 0, Error.New(EarlyExitNoDuplicates, ""))
             let message = duplicatesMessage(groups)
-            // prompt everything
-            // read instruction, either 
-               // do delete and re-run clean (so can see results)
-               // do nothing so can exit
-            // look into old stuff and see what we can re-use!
-            from _1 in log(message)
-            select unit;
+            from _1 in logCleanPrompt(message)
+            from selection in readValue<CleanRT, int>(parseBetween1And(2), "Please enter a selection number, 1 or 2")
+            from _2 in runSelection<CleanRT>(selection, groups)
+            select unit
+        )
+        .Catch(EarlyExitNoDuplicates, _ => log<CleanRT>("Found no duplicate entries in db after import"))
+        .RunIO(new CleanRT(new Console(), storage));
     }
+
+    private static Eff<CleanRT, Unit> logCleanPrompt(string message) => 
+        log<CleanRT>($"{message}{Environment.NewLine + Environment.NewLine}{DuplicateActionPrompt}");
+
+    private static Eff<RT, Unit> runSelection<RT>(int cleanUpSelection, HashMap<LineItem, Seq<QueryResult<ObjectId>>> duplicateGroups) 
+        where RT: IHasStorage<ObjectId> =>
+        cleanUpSelection switch
+        {
+            1 => deleteUnCategorized<RT>(duplicateGroups.Values.ToSeq().Flatten()),
+            2 => unitIO,
+            _ => throw new ArgumentOutOfRangeException(nameof(cleanUpSelection), cleanUpSelection, null)
+        };
+
+    private static Eff<RT, Unit> deleteUnCategorized<RT>(Seq<QueryResult<ObjectId>> duplicateGroupsValues) where RT : IHasStorage<ObjectId> =>
+        from rt in askE<RT>()
+        from _1 in rt.Storage.Delete(duplicateGroupsValues
+            .Choose(r => r.Record switch
+            {
+                UnCategorized  => Some(r.Id),
+                _ => None
+            }))
+        select unit;
 
     private static IO<HashMap<LineItem, Seq<QueryResult<ObjectId>>>> lookupAndGroup(DateTime startRange, DateTime endRange, LiteDb storage) =>
         storage.GetDateRange(startRange, endRange)
             .Reduce(HashMap<LineItem, Seq<QueryResult<ObjectId>>>(), (groups, c) =>
                 groups.AddOrUpdate(c.Record.LineItem, cs => cs.Add(c), Seq(c))
             );
-
-    //todo utilize some nice, re-usable method like instead of this internal thing (there's currently a couple in "User Classification")
-    // also need an error or warning version of this, does/could that exist in CommandLine LanguageExt library?
-    private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
     
-    private static string duplicatesMessage(HashMap<LineItem, Seq<QueryResult<ObjectId>>> groups)
-    {
-        var onlyDuplicates = groups.Filter(cs => cs.Count > 1);
-        return onlyDuplicates.IsEmpty
-            ? "Found no duplicate entries in db after import"
-            : $"Found duplicate entries in db {Environment.NewLine}{string.Join(Environment.NewLine,
+    private static string duplicatesMessage(HashMap<LineItem, Seq<QueryResult<ObjectId>>> onlyDuplicates) =>
+        $"Found duplicate entries in db {Environment.NewLine}{string.Join(Environment.NewLine,
                 onlyDuplicates.AsIterable()
                     .Map(kv => $"{kv.Value.Count} for {kv.Key.Description}: {kv.Key.Amount:C} on {kv.Key.Date:D}") // template copied from UserClassificaiton.cs, should consolidate?
             )}";
-    }
 
-    private const string Prompt = "What do you want to do to resolve the duplicates?" +
-                                  "    1) Delete unclassified " +
-                                  "    2) Do nothing (exit)";
+    public static readonly string DuplicateActionPrompt = "What do you want to do to resolve the duplicates?" + Environment.NewLine +
+                                                 "    1) Delete unclassified " + Environment.NewLine +
+                                                 "    2) Do nothing (exit)" + Environment.NewLine;
+
+    private const int EarlyExitNoDuplicates = 8987;
 }

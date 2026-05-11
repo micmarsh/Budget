@@ -1,6 +1,7 @@
 using Budget;
 using LanguageExt;
 using LanguageExt.Common;
+using Console = Budget.Console;
 
 namespace ConsoleApps;
 using static LanguageExt.Prelude;
@@ -8,6 +9,11 @@ using static Budget.Utilities;
 
 public static class Prompt
 {
+    private readonly record struct ConsoleOnly(IConsole Console) : IHasConsole;
+
+    public static IO<A> readValueIO<A>(Func<string, Option<A>> parse, string retryPrompt) =>
+        readValue<ConsoleOnly, A>(parse, retryPrompt).RunIO(new ConsoleOnly(new Console()));
+    
     public static Eff<RT, A> readValue<RT, A>(Func<string, Option<A>> parse, string retryPrompt)
         where RT : IHasConsole =>
         from line in readLine<RT>()

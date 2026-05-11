@@ -4,7 +4,7 @@ using static LanguageExt.Prelude;
 
 namespace Budget.Services.Storage.LiteDB;
 
-public class LiteDb : IStorage, IAutoClassifier, IClassificationQuery<ObjectId>
+public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<ObjectId>
 {
     private const string AutoClassificationsCollectionName = "AutoClassifications";
     private readonly string _connectionString;
@@ -74,6 +74,15 @@ public class LiteDb : IStorage, IAutoClassifier, IClassificationQuery<ObjectId>
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
             catsColl.Upsert(CategorySelectOption.Create(classified));
             return unit;
+        });
+
+    public IO<Unit> Delete(Seq<ObjectId> deleteIds) =>
+        IO.lift(() =>
+        {
+            using var conn = GetDb();
+            var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
+            var idSet = deleteIds.ToHashSet();
+            coll.DeleteMany(c => idSet.Contains(c.Id));
         });
 
     private readonly Atom<HashMap<string, Category>> AutoClassifyCache = Atom(LanguageExt.HashMap<string, Category>.Empty);
