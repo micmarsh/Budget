@@ -39,16 +39,26 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
 
     private LiteDatabase GetDb() => string.IsNullOrEmpty(_connectionString) ? new (_stream) : new(_connectionString);
 
-    public IO<Unit> Save(Classification classified) =>
+    public IO<Unit> Save(ObjectId objectId, Classification classified) =>
         IO.lift(() =>
         {
             var now = DateTime.Now; // todo inject into constructor?
+            
             using var conn = GetDb();
-            var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-            coll.Insert(ClassificationDoc.NewAdd(_newObjectId(), now, classified));
-
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
-            catsColl.Upsert(CategorySelectOption.Create(classified));
+            var categoryOptions = CategorySelectOption.Create(classified);
+            catsColl.Upsert(categoryOptions);
+
+            var classifiedHistoryEntries = categoryOptions.Map(c => (History) new Classified(c.Category, now));
+            
+            var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
+            coll.UpdateMany(doc =>  new ClassificationDoc(
+                    doc.Id,
+                    classified,
+                    doc.History.Concat(classifiedHistoryEntries)
+                ),
+                doc => doc.Id == objectId);
+            
             return unit;
         });
 

@@ -3,7 +3,7 @@ using LiteDB;
 
 namespace Budget;
 
-public record Runtime(IFileReads FileReads, IStorage<ObjectId> Storage, IConsole Console, IAutoClassifier AutoClassifier)
+public readonly record struct Runtime<DbId>(IStorage<DbId> Storage, IConsole Console, IAutoClassifier AutoClassifier)
     : IHasConsole, IHasAutoClassifier;
 
 public interface IHasAutoClassifier
@@ -25,7 +25,7 @@ public interface IHasConsole
 //todo rename and re-tool this completely for non-"latest-based" user classification
 public interface IStorage<DbId>
 {
-    IO<Unit> Save(Classification classified);
+    IO<Unit> Save(DbId id, Classification classified);
    // querying for all is for later!
    
     IO<Unit> Delete(Seq<DbId> deleteIds);

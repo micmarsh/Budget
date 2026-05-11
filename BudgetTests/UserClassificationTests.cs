@@ -21,16 +21,17 @@ public class UserClassificationTests
 
     private static readonly DateTime TestDate = new (2025, 11, 20);
 
-    private readonly Seq<LineItem> LineItems =  Seq(new LineItem("Frank's POS Charge", -23.32M, TestDate),
+    private readonly Seq<(ObjectId, LineItem)> LineItems =  Seq(new LineItem("Frank's POS Charge", -23.32M, TestDate),
         new LineItem("Progressive Insurance", -800M, TestDate),
-        new LineItem("Stuff", -10, TestDate));
+        new LineItem("Stuff", -10, TestDate))
+        .Map(l => (ObjectId.NewObjectId(), l));
 
 
-    private Eff<IConsole, Classification> testClassify(Seq<CategorySelectOption> categories, LineItem lineItem)
+    private Eff<IConsole, Classification> testClassify(Seq<CategorySelectOption> categories, (ObjectId, LineItem) lineItem)
     {
         var storage = new TestStorage();
         return classifyAll(categories, [lineItem])
-            .CoMap((IConsole c) => new Runtime(new NoopFile(), storage, c, storage))
+            .CoMap((IConsole c) => new Runtime<ObjectId>(storage, c, storage))
             .Bind(_ => storage.GetDateRange(DateTime.MinValue, DateTime.MaxValue)
                 .Map(x => x.Record)
                 .Last());
@@ -102,11 +103,11 @@ AutoClassifyPrompt
     {
         const int itemCount = 100000;
         var lineItems = toSeq(Enumerable.Range(0, itemCount))
-            .Map(i => new LineItem($"Item {i}", 100, TestDate));
+            .Map(i => (ObjectId.NewObjectId(), new LineItem($"Item {i}", 100, TestDate)));
         
         var inputs = toSeq(Enumerable.Repeat("1", itemCount));
 
-        var _ = UserClassification.classifyAll(Categories, lineItems)
+        var _ = UserClassification.classifyAll<ObjectId>(Categories, lineItems)
             .RunUnsafe(TestRuntime(new TestConsole(inputs)));
     }
 
@@ -342,23 +343,19 @@ AutoClassifyPrompt
         var lineItems = Seq(new LineItem("PAYCHECK", 1000M, TestDate),
             new LineItem("MENARDS REBATE", 300M, TestDate),
             new LineItem("Food Store", -123, TestDate), 
-            new LineItem("Cash", 1, TestDate));
+            new LineItem("Cash", 1, TestDate))
+            .Map(l => (ObjectId.NewObjectId(), l));
 
-        var _ = UserClassification.classifyAll(Categories, lineItems)
+        var _ = UserClassification.classifyAll<ObjectId>(Categories, lineItems)
             .RunUnsafe(TestRuntime(console));
 
         console.Outputs.Should<Seq<string>>().BeEquivalentTo(expectedOutput);
     }
 
-    private static Runtime TestRuntime(IConsole c)
+    private static Runtime<ObjectId> TestRuntime(IConsole c)
     {
         var storage = new TestStorage();
-        return new Runtime(new NoopFile(), storage, c, storage);
-    }
-
-    private class NoopFile : IFileReads
-    {
-        public IO<string> GetFileText(string filePath) => IO.pure(string.Empty);
+        return new Runtime<ObjectId>(storage, c, storage);
     }
 
     private class TestStorage() : LiteDb(new MemoryStream(), ObjectId.NewObjectId);

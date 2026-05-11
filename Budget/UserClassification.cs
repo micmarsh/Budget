@@ -10,16 +10,16 @@ namespace Budget;
 
 public static class UserClassification
 {
-    public static Eff<Runtime, Unit> classifyAll(Seq<CategorySelectOption> categories, Seq<LineItem> lineItems) =>
+    public static Eff<Runtime<DbId>, Unit> classifyAll<DbId>(Seq<CategorySelectOption> categories, Seq<(DbId Id, LineItem LineItem)> lineItems) =>
         // Need "FoldBack" in order to stack actions in correct order? Is this a bug?
         lineItems.FoldBackM((Categories: categories, Remaining: lineItems.Length), (state, lineItem) =>
-                from rt in askE<Runtime>()
+                from rt in askE<Runtime<DbId>>()
                 
                 from _1 in rt.Console.WriteLine($"{state.Remaining} items left to classify")
-                from @class in classifyWithAuto.CoMap(getClassifyRuntime(state.Categories, lineItem))
+                from @class in classifyWithAuto.CoMap(getClassifyRuntime<DbId>(state.Categories, lineItem.LineItem))
                 
                 // from @class in classify.CoMap(getClassifyRuntime(state.Categories, lineItem))
-                from _ in rt.Storage.Save(@class)
+                from _ in rt.Storage.Save(lineItem.Id, @class)
                 select (addNewCategories(@class, state.Categories), state.Remaining - 1))
             .IgnoreF()
             .As();
@@ -55,7 +55,7 @@ public static class UserClassification
     static Eff<ClassifyRT, A> readValue<A>(string read, Func<string, Option<A>> parse, string retryPrompt) =>
         readValue<ClassifyRT, A>(read, parse, retryPrompt);
 
-    private static Func<Runtime, ClassifyRT> getClassifyRuntime(Seq<CategorySelectOption> cats, LineItem lineItem) =>
+    private static Func<Runtime<DbId>, ClassifyRT> getClassifyRuntime<DbId>(Seq<CategorySelectOption> cats, LineItem lineItem) =>
         rt => new ClassifyRT(rt.Console,
             cats.Filter(cat => cat.IsIncome ? lineItem.Amount > 0 : lineItem.Amount < 0
             )
@@ -65,7 +65,7 @@ public static class UserClassification
     /// <summary>
     /// Public for testing only
     /// </summary>
-    public sealed record ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem, IAutoClassifier AutoClassifier) 
+    public readonly record struct ClassifyRT(IConsole Console, Seq<CategorySelectOption> Categories, LineItem LineItem, IAutoClassifier AutoClassifier) 
         : IHasConsole, IHasAutoClassifier;
 
     /// <summary>

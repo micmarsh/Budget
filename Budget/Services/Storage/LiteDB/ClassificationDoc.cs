@@ -12,6 +12,13 @@ public readonly record struct ClassificationDoc(ObjectId Id, Classification Reco
         return new ClassificationDoc(objectid, classified, Seq<History>(new Added(now))
             .Concat(categorySelectOptions.Map(opt => new Classified(opt.Category, now))));
     }
+    
+    public static ClassificationDoc NewClassify(ObjectId objectid, DateTime now, Classification classified)
+    {
+        var categorySelectOptions = CategorySelectOption.Create(classified);
+        return new ClassificationDoc(objectid, classified, Seq<History>(new Added(now))
+            .Concat(categorySelectOptions.Map(opt => new Classified(opt.Category, now))));
+    }
 };
 
 public abstract record History(DateTime DateTime);
