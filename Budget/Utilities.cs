@@ -8,21 +8,21 @@ namespace Budget;
 
 public static class Utilities
 {
-    public static Eff<Sub, Sub> askE<Sub>() => new (
+    public static Eff<Sub, Sub> askE<Sub>() => new(
         new ReaderT<Sub, IO, Sub>(IO.pure)
     );
-    
+
     // todo this is a whole project to merge back into main as proper HKT
     public static Eff<Env2, A> CoMap<Env1, Env2, A>(this Eff<Env1, A> eff, Func<Env2, Env1> f) =>
-        new (new ReaderT<Env2, IO, A>(env2 => eff.effect.Run(f(env2)) ));
-    
+        new(new ReaderT<Env2, IO, A>(env2 => eff.effect.Run(f(env2))));
+
     //todo based version where everything is monad, overlaods wrap up in Pure as needed, then can go in main too!
     //tricky problems found with not everything being lazy (attempting to "guard" Trues with "bad" Try methods, for example)
     //   Another example: Doesn't work to "guard" an index lookup (such as in Default value), for obvious reasons if you think about it
     public static K<M, A> cond<M, A>(Seq<(bool Pred, K<M, A> True)> seq, A Default)
         where M : Monad<M>
         => cond(seq, M.Pure(Default));
-    
+
     public static K<M, A> cond<M, A>(Seq<(bool Pred, K<M, A> True)> seq, K<M, A> Default)
         where M : Monad<M>
         => seq.Rev().Fold(Default, (prev, nextIf) => iff(
@@ -30,13 +30,13 @@ public static class Utilities
             nextIf.True,
             prev
         ));
-    
+
     // Similarly nothing to do with budget at all, but generally useful for C#? Doesn't even need LanguageExt dep!
     public static ArgumentException patternMatchError<Supertype>(Supertype unmatchable, string? paramName = null) =>
-        new ($"Unexpected case type {unmatchable.GetType().Name} in" +
-             $" pattern-match for {typeof(Supertype).Name}" +
-             fileNameAndLine(), paramName);
-    
+        new($"Unexpected case type {unmatchable.GetType().Name} in" +
+            $" pattern-match for {typeof(Supertype).Name}" +
+            fileNameAndLine(), paramName);
+
     private static string fileNameAndLine()
     {
         var stackTrace = new System.Diagnostics.StackTrace();
@@ -46,8 +46,34 @@ public static class Utilities
         {
             return string.Empty;
         }
-    
+
         return $" at {matchFrame.GetFileName()}:{matchFrame.GetFileLineNumber()}";
+    }
+
+    /// <summary>
+    /// Use to set a disposable to dispose after a given enumberable is fully enumerated. Potentially useful for
+    /// database cursors and the like
+    /// </summary>
+    /// <param name="items"></param>
+    /// <param name="toDispose"></param>
+    /// <typeparam name="A"></typeparam>
+    /// <returns>A Seq to prevent mutliple enumerations</returns>
+    public static Seq<A> DisposeAfter<A>(this IEnumerable<A> items, IDisposable toDispose)
+    {
+        IEnumerable<A> go()
+        {
+            try
+            {
+                foreach (var item in items)
+                    yield return item;
+            }
+            finally
+            {
+                toDispose.Dispose();
+            }
+        }
+
+        return toSeq(go());
     }
 }
 
