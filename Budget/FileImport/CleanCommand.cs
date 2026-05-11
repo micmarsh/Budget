@@ -52,7 +52,7 @@ public static class CleanCommand
             }))
         select unit;
 
-    private static IO<HashMap<LineItem, Seq<QueryResult<ObjectId>>>> lookupAndGroup(DateTime startRange, DateTime endRange, LiteDb storage) =>
+    private static IO<HashMap<LineItem, Seq<QueryResult<ObjectId>>>> lookupAndGroup(DateTime startRange, DateTime endRange, IClassificationQuery<ObjectId> storage) =>
         storage.GetDateRange(startRange, endRange)
             .Reduce(HashMap<LineItem, Seq<QueryResult<ObjectId>>>(), (groups, c) =>
                 groups.AddOrUpdate(c.Record.LineItem, cs => cs.Add(c), Seq(c))

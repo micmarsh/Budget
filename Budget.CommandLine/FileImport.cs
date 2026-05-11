@@ -64,7 +64,7 @@ public static class FileImport
     public static readonly ICmd Command =
         Cmd.New("import", "Import a CSV file (typically exported from your bank) " +
                           "into the database to be classified later. Will automatically run " +
-                          "(TODO: link actual 'clean cmd.Name') to deal with potential duplicates after")
+                          "'clean' for the date range in the input file to deal with potential duplicates after")
             .AddOption(InputFile)
             .AddOption(Shared.DbString)
             .AddOption(DescriptionField)

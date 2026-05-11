@@ -7,6 +7,7 @@ Cmd.New("budget", "A suite of tools for managing a household budget")
     .AddSub(Migration.Command)
     .AddSub(View.Command)
     .AddSub(FileImport.Command)
+    .AddSub(Clean.Command)
     .ToRoot()
     .Parse(args)
     .Invoke();
