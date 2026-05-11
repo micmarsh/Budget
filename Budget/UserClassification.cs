@@ -4,6 +4,7 @@ using LanguageExt.Common;
 using LanguageExt.Traits;
 using static Budget.Utilities;
 using static LanguageExt.Prelude;
+using static ConsoleApps.Prompt;
 
 namespace Budget;
 
@@ -50,6 +51,9 @@ public static class UserClassification
         CategorySelectOption.Create(@class).Map(c => 
             (@class.LineItem.Description, c.Category)
         );
+    
+    static Eff<ClassifyRT, A> readValue<A>(string read, Func<string, Option<A>> parse, string retryPrompt) =>
+        readValue<ClassifyRT, A>(read, parse, retryPrompt);
 
     private static Func<Runtime, ClassifyRT> getClassifyRuntime(Seq<CategorySelectOption> cats, LineItem lineItem) =>
         rt => new ClassifyRT(rt.Console,
@@ -117,34 +121,6 @@ public static class UserClassification
         let cats = rt.Categories
         from index in readValue<ClassifyRT, int>(input, parseBetween1And(cats.Count), $"Please select a number between 1 and {cats.Count}")
         select new Categorized(cats[index - 1].Category, rt.LineItem);
-
-
-    static Func<string, Option<int>> parseBetween1And(int max) =>
-        str => parseInt(str).Filter(i => i >= 1 && i <= max);
-
-    static Eff<ClassifyRT, A> readValue<A>(string read, Func<string, Option<A>> parse, string retryPrompt) =>
-        readValue<ClassifyRT, A>(read, parse, retryPrompt);
-
-    
-    static Eff<RT, A> readValue<RT, A>(string read, Func<string, Option<A>> parse, string retryPrompt)
-        where RT : IHasConsole
-        =>
-        readValue<RT, A>(IO.pure(read), parse, retryPrompt);
-
-    static Eff<RT, A> readValue<RT, A>(IO<string> read, Func<string, Option<A>> parse, string retryPrompt)
-        where RT : IHasConsole
-        =>
-        from line in read
-        from _1 in guardNotCancelled(line)
-        from result in parse(line).Match(
-            a => Pure(a),
-            () =>
-                from _2 in log<RT>(retryPrompt)
-                from rt in askE<RT>()
-                from r in readValue<RT, A>(readLine<RT>().RunIO(rt), parse, retryPrompt)
-                select r
-        )
-        select result;
     
     static Eff<ClassifyRT, Classification> applySubClassifications(string s) =>
         applySubClassifications(s, Empty).Map(c => (Classification) c);
@@ -203,17 +179,4 @@ public static class UserClassification
     static Eff<ClassifyRT, Unit> log(string message) => log<ClassifyRT>(message);
 
     private static Eff<ClassifyRT, string> readLine() => readLine<ClassifyRT>();
-    
-    static Eff<RT, Unit> log<RT>(string message)
-        where RT : IHasConsole
-        => askE<RT>().Bind(c => c.Console.WriteLine(message));
-
-    static Eff<RT, string> readLine<RT>() 
-        where RT : IHasConsole
-        => askE<RT>().Bind(c => c.Console.ReadLine());
-
-    private const int StateCancelledCode = 345;
-
-    static IO<Unit> guardNotCancelled(string input) =>
-        input.StartsWith("cancel") ? Fail(Error.New(StateCancelledCode, "state cancelled")) : Pure(unit);
 }

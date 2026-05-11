@@ -82,30 +82,9 @@ public static class FileImport
         => from csvResults in BankCsv.parseBankCsv(file, descF, amountF, dateF, backupF)
             let importer = new LiteDBImport(dbString.Name)
             from _ in importer.WriteAll(LineItemsToImportable(csvResults.LineItems))
-
-            //todo move this to some 'clean' area
-            let storage = new LiteDb(dbString.Name, ObjectId.NewObjectId)
-            from groups in storage.GetDateRange(csvResults.MinDate, csvResults.MaxDate)
-                .Reduce(HashMap<LineItem, Seq<Classification>>(), (groups, c) =>
-                    groups.AddOrUpdate(c.LineItem, cs => cs.Add(c), Seq(c))
-                )
-            let message = duplicatesMessage(groups)
-            from _1 in log(message)
-            
+            from _1 in CleanCommand.Run(dbString, csvResults.MinDate, csvResults.MaxDate)
            select unit;
-           
-   //todo utilize some nice, re-usable method like instead of this internal thing (there's currently a couple in "User Classification")
-   // also need an error or warning version of this, does/could that exist in CommandLine LanguageExt library?
-   private static IO<Unit> log(object? obj) => IO.lift(() => System.Console.WriteLine(obj));
 
-
-    private static string duplicatesMessage(HashMap<LineItem, Seq<Classification>> groups) =>
-        $"Found duplicate entries in db {Environment.NewLine} {string.Join(Environment.NewLine,
-            groups.AsIterable()
-                .Filter(kv => kv.Value.Count > 1)
-                .Map(kv => $"{kv.Value.Count} for {kv.Key.Description}: {kv.Key.Amount:C} on {kv.Key.Date:D}") // template copied from UserClassificaiton.cs, should consolidate?
-        )}";
-    
     private static Seq<FlatClassification> LineItemsToImportable(Seq<LineItem> lineItems) =>
         lineItems
             .Map(lineItem => new UnCategorized(lineItem))

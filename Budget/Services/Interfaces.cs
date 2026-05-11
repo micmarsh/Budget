@@ -1,5 +1,4 @@
 using LanguageExt;
-using LanguageExt.Common;
 
 namespace Budget;
 
@@ -30,10 +29,12 @@ public interface IStorage
    // querying for all is for later!
 }
 
-public interface IClassificationQuery
+public interface IClassificationQuery<DbId>
 {
-    public Source<Classification> GetDateRange(DateTime start, DateTime end);
+    public Source<QueryResult<DbId>> GetDateRange(DateTime start, DateTime end);
 }
+
+public readonly record struct QueryResult<UniqueId>(UniqueId Id, Classification Record);
 
 public interface IAutoClassifier
 {

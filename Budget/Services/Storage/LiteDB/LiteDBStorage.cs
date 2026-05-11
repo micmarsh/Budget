@@ -4,7 +4,7 @@ using static LanguageExt.Prelude;
 
 namespace Budget.Services.Storage.LiteDB;
 
-public class LiteDb : IStorage, IAutoClassifier, IClassificationQuery
+public class LiteDb : IStorage, IAutoClassifier, IClassificationQuery<ObjectId>
 {
     private const string AutoClassificationsCollectionName = "AutoClassifications";
     private readonly string _connectionString;
@@ -96,14 +96,14 @@ public class LiteDb : IStorage, IAutoClassifier, IClassificationQuery
         AutoClassifyCache.ValueIO.Map(cache => cache.Find(description));
 
     //todo just return id + classification? Union type UniqueDbId that only wraps LiteDb for now?
-    public Source<Classification> GetDateRange(DateTime start, DateTime end)
+    public Source<QueryResult<ObjectId>> GetDateRange(DateTime start, DateTime end)
     {
         var db = GetDb();
         var cursor = db.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Query()
             .Where(c => c.Record.LineItem.Date >= start)
             .Where(c => c.Record.LineItem.Date <= end)
-            .Select(c => c.Record)
-            .ToEnumerable();
+            .ToEnumerable()
+            .Select(c => new QueryResult<ObjectId>(c.Id, c.Record));
         return Source.lift(cursor.DisposeAfter(db));
     }
 }
