@@ -39,30 +39,6 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
 
     private LiteDatabase GetDb() => string.IsNullOrEmpty(_connectionString) ? new (_stream) : new(_connectionString);
 
-
-    public IO<ClassificationsState> GetLatest() =>
-        IO.lift(() =>
-        {
-            using var conn = GetDb();
-            var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-            var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
-
-            //todo need separate categories collection?
-            var lastDay = coll.Query()
-                .OrderByDescending(c => c.Record.LineItem.Date)
-                .Select(c => c.Record.LineItem.Date)
-                .FirstOrDefault();
-            var lastClassifications = coll
-                .Find(c => c.Record.LineItem.Date == lastDay.Date)
-                .Select(doc => doc.Record)
-                .ToList();
-            return new ClassificationsState(
-                lastDay,
-                toSeq(catsColl.Find(_ => true).ToList()),
-                toSet(lastClassifications)
-            );
-        });
-
     public IO<Unit> Save(Classification classified) =>
         IO.lift(() =>
         {
@@ -115,6 +91,14 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             .Select(c => new QueryResult<ObjectId>(c.Id, c.Record));
         return Source.lift(cursor.DisposeAfter(db));
     }
+
+    public IO<Seq<CategorySelectOption>> GetAllCategories() =>
+        IO.lift(() =>
+        {
+            using var conn = GetDb();
+            var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
+            return toSeq(catsColl.Find(_ => true).ToList());
+        });
 }
 
 // Basically some repl code

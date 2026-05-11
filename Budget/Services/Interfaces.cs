@@ -25,7 +25,6 @@ public interface IHasConsole
 //todo rename and re-tool this completely for non-"latest-based" user classification
 public interface IStorage<DbId>
 {
-    IO<ClassificationsState> GetLatest();
     IO<Unit> Save(Classification classified);
    // querying for all is for later!
    
@@ -40,6 +39,7 @@ public interface IHasStorage<DbId>
 public interface IClassificationQuery<DbId>
 {
     public Source<QueryResult<DbId>> GetDateRange(DateTime start, DateTime end);
+    public IO<Seq<CategorySelectOption>> GetAllCategories();
 }
 
 public readonly record struct QueryResult<UniqueId>(UniqueId Id, Classification Record);
@@ -49,11 +49,6 @@ public interface IAutoClassifier
     IO<Unit> Save(string description, Category category);
     IO<Option<Category>> Lookup(string description);
 }
-
-public readonly record struct ClassificationsState(
-    DateTime Date,
-    Seq<CategorySelectOption> Categories,
-    Set<Classification> OnDate);
 
 public interface IFileReads
 {

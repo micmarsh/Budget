@@ -31,7 +31,9 @@ public class UserClassificationTests
         var storage = new TestStorage();
         return classifyAll(categories, [lineItem])
             .CoMap((IConsole c) => new Runtime(new NoopFile(), storage, c, storage))
-            .Map(_ => storage.GetLatest().Run().OnDate.Last());
+            .Bind(_ => storage.GetDateRange(DateTime.MinValue, DateTime.MaxValue)
+                .Map(x => x.Record)
+                .Last());
     }
     
     [Fact]
