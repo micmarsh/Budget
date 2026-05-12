@@ -56,12 +56,12 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             return unit;
         });
 
-    public IO<Unit> Delete(Seq<ObjectId> deleteIds) =>
+    public IO<int> Delete(Seq<ObjectId> deleteIds) =>
         IO.lift(() =>
         {
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
             var idSet = deleteIds.ToHashSet();
-            coll.DeleteMany(c => idSet.Contains(c.Id));
+            return coll.DeleteMany(c => idSet.Contains(c.Id));
         });
 
     private readonly Atom<HashMap<string, Category>> AutoClassifyCache =

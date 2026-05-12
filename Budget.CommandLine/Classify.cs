@@ -1,6 +1,8 @@
 using Budget.Services.Storage.LiteDB;
 using CommandLine.Immutable;
+using ConsoleApps;
 using LanguageExt;
+using LanguageExt.Common;
 using LanguageExt.Traits;
 using LiteDB;
 using static LanguageExt.Prelude;
@@ -21,14 +23,19 @@ public static class Classify
     {
         var storage = new LiteDb(dbString.Name, ObjectId.NewObjectId);
         return (
-            from categories in storage.GetAllCategories().Collect()
             from unclassifed in GetAllUnCategorized(storage).Collect()
+            from _0 in guardnot(unclassifed.IsEmpty, Error.New(EarlyReturnNoUnclassifed, ""))
+            from categories in storage.GetAllCategories().Collect()
             from _1 in UserClassification.classifyAll(categories, unclassifed).RunIO(CreateRT(storage))
             select unit
-        ).Finally(IO.lift(storage.Dispose));
+        )
+        .Catch(EarlyReturnNoUnclassifed, _ => Prompt.logIO($"Found no unclassified line items in {dbString.Name}")).As()
+        .Finally(IO.lift(storage.Dispose));
     }
 
-    private static Runtime<ObjectId> CreateRT(LiteDb storage) => new(storage, new Console(), storage);
+    private const int EarlyReturnNoUnclassifed = 2413;
+
+    private static Runtime<ObjectId> CreateRT(LiteDb storage) => new(storage, Console.Default, storage);
 
     private static Source<(ObjectId Id, LineItem lineItem)> GetAllUnCategorized(IClassificationQuery<ObjectId> storage) =>
         +storage.GetDateRange(DateTime.MinValue, DateTime.MaxValue)

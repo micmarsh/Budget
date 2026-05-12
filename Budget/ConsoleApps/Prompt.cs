@@ -11,7 +11,7 @@ public static class Prompt
 {
     private readonly record struct ConsoleOnly(IConsole Console) : IHasConsole
     {
-        public static readonly ConsoleOnly Default = new (new Console());
+        public static readonly ConsoleOnly Default = new (Budget.Console.Default);
     }
 
     public static IO<A> readValueIO<A>(Func<string, Option<A>> parse, string retryPrompt) =>

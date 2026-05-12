@@ -10,4 +10,6 @@ public class Console : IConsole
             IO.pure(s));
 
     public IO<Unit> WriteLine(string message) => IO.lift(() => System.Console.WriteLine(message));
+    
+    public static readonly Console Default = new Console();
 }

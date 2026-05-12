@@ -26,8 +26,8 @@ public static class CleanCommand
             from _2 in runSelection<CleanRT>(selection, groups)
             select unit
         )
-        .Catch(EarlyExitNoDuplicates, _ => log<CleanRT>("Found no duplicate entries in db after import"))
-        .RunIO(new CleanRT(new Console(), storage))
+        .Catch(EarlyExitNoDuplicates, _ => log<CleanRT>("Found no duplicate entries in db"))
+        .RunIO(new CleanRT(Console.Default, storage))
         .Finally(IO.lift(storage.Dispose));
     }
 
@@ -35,23 +35,25 @@ public static class CleanCommand
         log<CleanRT>($"{message}{Environment.NewLine + Environment.NewLine}{DuplicateActionPrompt}");
 
     private static Eff<RT, Unit> runSelection<RT>(int cleanUpSelection, HashMap<LineItem, Seq<QueryResult<ObjectId>>> duplicateGroups) 
-        where RT: IHasStorage<ObjectId> =>
+        where RT: IHasStorage<ObjectId>, IHasConsole =>
         cleanUpSelection switch
         {
             1 => deleteUnCategorized<RT>(duplicateGroups.Values.ToSeq().Flatten()),
-            2 => unitIO,
+            2 => log<RT>("Exiting without cleaning database"),
             _ => throw new ArgumentOutOfRangeException(nameof(cleanUpSelection), cleanUpSelection, null)
         };
 
-    private static Eff<RT, Unit> deleteUnCategorized<RT>(Seq<QueryResult<ObjectId>> duplicateGroupsValues) where RT : IHasStorage<ObjectId> =>
-        from rt in askE<RT>()
-        from _1 in rt.Storage.Delete(duplicateGroupsValues
-            .Choose(r => r.Record switch
-            {
-                UnCategorized  => Some(r.Id),
-                _ => None
-            }))
-        select unit;
+    private static Eff<RT, Unit> deleteUnCategorized<RT>(Seq<QueryResult<ObjectId>> duplicateGroupsValues)
+        where RT : IHasStorage<ObjectId>, IHasConsole =>
+            from rt in askE<RT>()
+            from deleted in rt.Storage.Delete(duplicateGroupsValues
+                .Choose(r => r.Record switch
+                {
+                    UnCategorized => Some(r.Id),
+                    _ => None
+                }))
+            from _1 in log<RT>($"Deleted {deleted} uncategorized duplicate entries from db, please run 'clean' command again to verify results")
+            select unit;
 
     private static IO<HashMap<LineItem, Seq<QueryResult<ObjectId>>>> lookupAndGroup(DateTime startRange, DateTime endRange, IClassificationQuery<ObjectId> storage) =>
         storage.GetDateRange(startRange, endRange)
