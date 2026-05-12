@@ -53,7 +53,8 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
             var existing = coll.FindOne(doc => doc.Id == objectId);
-            coll.Update(existing with
+            // should just be Update but Upsert makes existing tests (5/12/2026) not break
+            coll.Upsert(existing with 
             {
                 Record = classified,
                 History = existing.History.Concat(classifiedHistoryEntries)
