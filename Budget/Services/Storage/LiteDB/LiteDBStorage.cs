@@ -100,10 +100,17 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
     private record ActionTransducer<A>(Func<A, IO<Unit>> action) : Transducer<A, A>
     {
         public override ReducerIO<A, S> Reduce<S>(ReducerIO<A, S> reducer) =>
-            (s, a) => 
+            (s, a) =>
                 from result in reducer.Invoke(s, a)
                 from _1 in action(a)
                 select result;
+    }
+    
+    private record ActionTransducer<A, B>(Func<A, IO<B>> action) : Transducer<A, B>
+    {
+        public override ReducerIO<A, S> Reduce<S>(ReducerIO<B, S> reducer) =>
+            (s, a) => action(a).Bind(b => reducer.Invoke(s, b));
+
     }
 
     public Source<CategorySelectOption> GetAllCategories()
