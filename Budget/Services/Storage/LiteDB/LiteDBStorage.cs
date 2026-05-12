@@ -52,12 +52,12 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             var classifiedHistoryEntries = categoryOptions.Map(c => (History) new Classified(c.Category, now));
             
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-            coll.UpdateMany(doc =>  new ClassificationDoc(
-                    doc.Id,
-                    classified,
-                    doc.History.Concat(classifiedHistoryEntries)
-                ),
-                doc => doc.Id == objectId);
+            var existing = coll.FindOne(doc => doc.Id == objectId);
+            coll.Update(existing with
+            {
+                Record = classified,
+                History = existing.History.Concat(classifiedHistoryEntries)
+            });
             
             return unit;
         });
@@ -90,7 +90,6 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
     public IO<Option<Category>> Lookup(string description) => 
         AutoClassifyCache.ValueIO.Map(cache => cache.Find(description));
 
-    //todo just return id + classification? Union type UniqueDbId that only wraps LiteDb for now?
     public Source<QueryResult<ObjectId>> GetDateRange(DateTime start, DateTime end)
     {
         var db = GetDb();
