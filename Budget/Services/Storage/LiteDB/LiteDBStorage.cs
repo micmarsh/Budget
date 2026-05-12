@@ -44,13 +44,14 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             var classifiedHistoryEntries = categoryOptions.Map(c => (History)new Classified(c.Category, now));
 
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-            var existing = coll.FindOne(doc => doc.Id == objectId);
+            var existing = DocLookupCache.Value.Find(objectId);
             // should just be Update but Upsert makes existing tests (5/12/2026) not break
-            coll.Upsert(existing with
-            {
-                Record = classified,
-                History = existing.History.Concat(classifiedHistoryEntries)
-            });
+            coll.Upsert(new ClassificationDoc(
+                objectId, 
+                classified,
+                existing.Map(d => d.History).IfNone(Empty)
+                    .Concat(classifiedHistoryEntries)
+                ));
 
             return unit;
         });
@@ -82,14 +83,27 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
     public IO<Option<Category>> Lookup(string description) =>
         AutoClassifyCache.ValueIO.Map(cache => cache.Find(description));
 
+    private readonly Atom<HashMap<ObjectId, ClassificationDoc>> DocLookupCache = Atom(HashMap<ObjectId, ClassificationDoc>());
+    
     public Source<QueryResult<ObjectId>> GetDateRange(DateTime start, DateTime end)
     {
         var cursor = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Query()
             .Where(c => c.Record.LineItem.Date >= start)
             .Where(c => c.Record.LineItem.Date <= end)
-            .ToEnumerable()
-            .Select(c => new QueryResult<ObjectId>(c.Id, c.Record));
-        return Source.lift(cursor);
+            .ToEnumerable();
+        return Source.lift(cursor)
+            .Transform(new ActionTransducer<ClassificationDoc>(doc => 
+                DocLookupCache.SwapIO(map => map.AddOrUpdate(doc.Id, doc)) * ignore))
+            .Map(doc => new QueryResult<ObjectId>(doc.Id, doc.Record));
+    }
+
+    private record ActionTransducer<A>(Func<A, IO<Unit>> action) : Transducer<A, A>
+    {
+        public override ReducerIO<A, S> Reduce<S>(ReducerIO<A, S> reducer) =>
+            (s, a) => 
+                from result in reducer.Invoke(s, a)
+                from _1 in action(a)
+                select result;
     }
 
     public Source<CategorySelectOption> GetAllCategories()
