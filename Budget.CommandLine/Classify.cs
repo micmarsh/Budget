@@ -21,7 +21,7 @@ public static class Classify
     {
         var storage = new LiteDb(dbString.Name, ObjectId.NewObjectId);
         return (
-            from categories in storage.GetAllCategories()
+            from categories in storage.GetAllCategories().Collect()
             from unclassifed in GetAllUnCategorized(storage).Collect()
             from _1 in UserClassification.classifyAll(categories, unclassifed).RunIO(CreateRT(storage))
             select unit
@@ -30,8 +30,8 @@ public static class Classify
 
     private static Runtime<ObjectId> CreateRT(LiteDb storage) => new(storage, new Console(), storage);
 
-    private static K<Source, (ObjectId Id, LineItem lineItem)> GetAllUnCategorized(IClassificationQuery<ObjectId> storage) =>
-        storage.GetDateRange(DateTime.MinValue, DateTime.MaxValue)
+    private static Source<(ObjectId Id, LineItem lineItem)> GetAllUnCategorized(IClassificationQuery<ObjectId> storage) =>
+        +storage.GetDateRange(DateTime.MinValue, DateTime.MaxValue)
             .Choose(r => r.Record switch
             {
                 UnCategorized { LineItem: var lineItem } => Some((r.Id, lineItem)),

@@ -39,7 +39,7 @@ public interface IHasStorage<DbId>
 public interface IClassificationQuery<DbId>
 {
     public Source<QueryResult<DbId>> GetDateRange(DateTime start, DateTime end);
-    public IO<Seq<CategorySelectOption>> GetAllCategories();
+    public Source<CategorySelectOption> GetAllCategories();
 }
 
 public readonly record struct QueryResult<UniqueId>(UniqueId Id, Classification Record);

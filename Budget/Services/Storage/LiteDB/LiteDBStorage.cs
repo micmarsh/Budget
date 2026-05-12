@@ -14,7 +14,7 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
         conn = new LiteDatabase(connectionString);
         Initialize();
     }
-    
+
     public LiteDb(Stream stream, Func<ObjectId> newObjectId)
     {
         conn = new LiteDatabase(stream);
@@ -24,34 +24,34 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
     private void Initialize()
     {
         RegisterSerializers.Register();
-        
+
         var coll = conn.GetCollection(AutoClassificationsCollectionName);
         var saved = coll.Find(_ => true)
             .Select(doc => (doc["_id"].AsString, new Category(doc["category"].AsString)))
             .ToHashMap();
         AutoClassifyCache.Swap(_ => saved);
     }
-    
+
     public IO<Unit> Save(ObjectId objectId, Classification classified) =>
         IO.lift(() =>
         {
             var now = DateTime.Now; // todo inject into constructor?
-            
+
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
             var categoryOptions = CategorySelectOption.Create(classified);
             catsColl.Upsert(categoryOptions);
 
-            var classifiedHistoryEntries = categoryOptions.Map(c => (History) new Classified(c.Category, now));
-            
+            var classifiedHistoryEntries = categoryOptions.Map(c => (History)new Classified(c.Category, now));
+
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
             var existing = coll.FindOne(doc => doc.Id == objectId);
             // should just be Update but Upsert makes existing tests (5/12/2026) not break
-            coll.Upsert(existing with 
+            coll.Upsert(existing with
             {
                 Record = classified,
                 History = existing.History.Concat(classifiedHistoryEntries)
             });
-            
+
             return unit;
         });
 
@@ -63,9 +63,10 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             coll.DeleteMany(c => idSet.Contains(c.Id));
         });
 
-    private readonly Atom<HashMap<string, Category>> AutoClassifyCache = Atom(LanguageExt.HashMap<string, Category>.Empty);
+    private readonly Atom<HashMap<string, Category>> AutoClassifyCache =
+        Atom(LanguageExt.HashMap<string, Category>.Empty);
 
-     IO<Unit> IAutoClassifier.Save(string description, Category category) =>
+    IO<Unit> IAutoClassifier.Save(string description, Category category) =>
         IO.lift(() =>
         {
             var coll = conn.GetCollection(AutoClassificationsCollectionName);
@@ -78,7 +79,7 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             return unit;
         });
 
-    public IO<Option<Category>> Lookup(string description) => 
+    public IO<Option<Category>> Lookup(string description) =>
         AutoClassifyCache.ValueIO.Map(cache => cache.Find(description));
 
     public Source<QueryResult<ObjectId>> GetDateRange(DateTime start, DateTime end)
@@ -91,12 +92,11 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
         return Source.lift(cursor);
     }
 
-    public IO<Seq<CategorySelectOption>> GetAllCategories() =>
-        IO.lift(() =>
-        {
-            var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
-            return toSeq(catsColl.Find(_ => true).ToList());
-        });
+    public Source<CategorySelectOption> GetAllCategories()
+    {
+        var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
+        return Source.lift(catsColl.Find(_ => true));
+    }
 
     public void Dispose() => conn.Dispose();
 }
