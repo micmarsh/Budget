@@ -4,24 +4,20 @@ using static LanguageExt.Prelude;
 
 namespace Budget.Services.Storage.LiteDB;
 
-public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<ObjectId>
+public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<ObjectId>, IDisposable
 {
     private const string AutoClassificationsCollectionName = "AutoClassifications";
-    private readonly string _connectionString;
-    private readonly Stream _stream;
-    private readonly Func<ObjectId> _newObjectId;
+    private readonly LiteDatabase conn;
 
     public LiteDb(string connectionString, Func<ObjectId> newObjectId)
     {
-        _connectionString = connectionString;
-        _newObjectId = newObjectId;
+        conn = new LiteDatabase(connectionString);
         Initialize();
     }
     
     public LiteDb(Stream stream, Func<ObjectId> newObjectId)
     {
-        _stream = stream;
-        _newObjectId = newObjectId;
+        conn = new LiteDatabase(stream);
         Initialize();
     }
 
@@ -29,22 +25,18 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
     {
         RegisterSerializers.Register();
         
-        using var db = GetDb();
-        var coll = db.GetCollection(AutoClassificationsCollectionName);
+        var coll = conn.GetCollection(AutoClassificationsCollectionName);
         var saved = coll.Find(_ => true)
             .Select(doc => (doc["_id"].AsString, new Category(doc["category"].AsString)))
             .ToHashMap();
         AutoClassifyCache.Swap(_ => saved);
     }
-
-    private LiteDatabase GetDb() => string.IsNullOrEmpty(_connectionString) ? new (_stream) : new(_connectionString);
-
+    
     public IO<Unit> Save(ObjectId objectId, Classification classified) =>
         IO.lift(() =>
         {
             var now = DateTime.Now; // todo inject into constructor?
             
-            using var conn = GetDb();
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
             var categoryOptions = CategorySelectOption.Create(classified);
             catsColl.Upsert(categoryOptions);
@@ -66,7 +58,6 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
     public IO<Unit> Delete(Seq<ObjectId> deleteIds) =>
         IO.lift(() =>
         {
-            using var conn = GetDb();
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
             var idSet = deleteIds.ToHashSet();
             coll.DeleteMany(c => idSet.Contains(c.Id));
@@ -74,11 +65,10 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
 
     private readonly Atom<HashMap<string, Category>> AutoClassifyCache = Atom(LanguageExt.HashMap<string, Category>.Empty);
 
-    public IO<Unit> Save(string description, Category category) =>
+     IO<Unit> IAutoClassifier.Save(string description, Category category) =>
         IO.lift(() =>
         {
-            using var db = GetDb();
-            var coll = db.GetCollection(AutoClassificationsCollectionName);
+            var coll = conn.GetCollection(AutoClassificationsCollectionName);
             coll.Upsert(new BsonDocument
             {
                 ["_id"] = description,
@@ -93,22 +83,22 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
 
     public Source<QueryResult<ObjectId>> GetDateRange(DateTime start, DateTime end)
     {
-        var db = GetDb();
-        var cursor = db.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Query()
+        var cursor = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Query()
             .Where(c => c.Record.LineItem.Date >= start)
             .Where(c => c.Record.LineItem.Date <= end)
             .ToEnumerable()
             .Select(c => new QueryResult<ObjectId>(c.Id, c.Record));
-        return Source.lift(cursor.DisposeAfter(db));
+        return Source.lift(cursor);
     }
 
     public IO<Seq<CategorySelectOption>> GetAllCategories() =>
         IO.lift(() =>
         {
-            using var conn = GetDb();
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
             return toSeq(catsColl.Find(_ => true).ToList());
         });
+
+    public void Dispose() => conn.Dispose();
 }
 
 // Basically some repl code

@@ -20,11 +20,12 @@ public static class Classify
     private static IO<Unit> RunClassify(FileInfo dbString)
     {
         var storage = new LiteDb(dbString.Name, ObjectId.NewObjectId);
-        return 
+        return (
             from categories in storage.GetAllCategories()
             from unclassifed in GetAllUnCategorized(storage).Collect()
             from _1 in UserClassification.classifyAll(categories, unclassifed).RunIO(CreateRT(storage))
-            select unit;
+            select unit
+        ).Finally(IO.lift(storage.Dispose));
     }
 
     private static Runtime<ObjectId> CreateRT(LiteDb storage) => new(storage, new Console(), storage);

@@ -27,7 +27,8 @@ public static class CleanCommand
             select unit
         )
         .Catch(EarlyExitNoDuplicates, _ => log<CleanRT>("Found no duplicate entries in db after import"))
-        .RunIO(new CleanRT(new Console(), storage));
+        .RunIO(new CleanRT(new Console(), storage))
+        .Finally(IO.lift(storage.Dispose));
     }
 
     private static Eff<CleanRT, Unit> logCleanPrompt(string message) => 
