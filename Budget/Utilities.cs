@@ -197,3 +197,19 @@ public sealed record LongCsvLine(Map<string, string> Fields, Seq<string> ExtraVa
 
 public record CsvLines(Seq<CsvLine> Lines, Seq<string> Header);
 public record CsvFile(Seq<CsvLine> Lines, Seq<string> Header, string FileName) : CsvLines(Lines, Header);
+
+public record ActionTransducer<A>(Func<A, IO<Unit>> action) : Transducer<A, A>
+{
+    public override ReducerIO<A, S> Reduce<S>(ReducerIO<A, S> reducer) =>
+        (s, a) =>
+            from result in reducer.Invoke(s, a)
+            from _1 in action(a)
+            select result;
+}
+    
+public record ActionTransducer<A, B>(Func<A, IO<B>> action) : Transducer<A, B>
+{
+    public override ReducerIO<A, S> Reduce<S>(ReducerIO<B, S> reducer) =>
+        (s, a) => action(a).Bind(b => reducer.Invoke(s, b));
+
+}

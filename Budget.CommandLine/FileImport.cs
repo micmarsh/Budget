@@ -5,6 +5,7 @@ using Budget.Migration;
 using Budget.Migration.Import;
 using Budget.Services.Storage.LiteDB;
 using CommandLine.Immutable;
+using ConsoleApps;
 using LanguageExt;
 using LanguageExt.Common;
 using LiteDB;
@@ -74,6 +75,7 @@ public static class FileImport
             .AddOption(Shared.SetDb)
             .AddOption(SetCsvConfig)
             .WithAction((file, dbString, descF, amountF, dateF, backupF, setDb, setCsv) =>
+                Prompt.logIO($"Read csv fields {descF}, {amountF}, {dateF}, {backupF}") >>
                 RunImport(file, dbString, descF, amountF, dateF, backupF) >>
                 maybeSetConfig(setDb, setCsv, dbString, descF, amountF, dateF, backupF));
 

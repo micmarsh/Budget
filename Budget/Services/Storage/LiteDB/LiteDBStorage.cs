@@ -1,3 +1,4 @@
+using ConsoleApps;
 using LanguageExt;
 using LiteDB;
 using static LanguageExt.Prelude;
@@ -91,26 +92,14 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             .Where(c => c.Record.LineItem.Date >= start)
             .Where(c => c.Record.LineItem.Date <= end)
             .ToEnumerable();
+        System.Console.WriteLine($"Have docs in db? { conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Query()
+            .Where(c => c.Record.LineItem.Date >= start)
+            .Where(c => c.Record.LineItem.Date <= end).Count()} all docs? {conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Find(_ => true).Count()} ");
         return Source.lift(cursor)
+         //   .Transform(new ActionTransducer<ClassificationDoc>(doc => Prompt.logIO($"Found a doc: {doc}")))
             .Transform(new ActionTransducer<ClassificationDoc>(doc => 
                 DocLookupCache.SwapIO(map => map.AddOrUpdate(doc.Id, doc)) * ignore))
             .Map(doc => new QueryResult<ObjectId>(doc.Id, doc.Record));
-    }
-
-    private record ActionTransducer<A>(Func<A, IO<Unit>> action) : Transducer<A, A>
-    {
-        public override ReducerIO<A, S> Reduce<S>(ReducerIO<A, S> reducer) =>
-            (s, a) =>
-                from result in reducer.Invoke(s, a)
-                from _1 in action(a)
-                select result;
-    }
-    
-    private record ActionTransducer<A, B>(Func<A, IO<B>> action) : Transducer<A, B>
-    {
-        public override ReducerIO<A, S> Reduce<S>(ReducerIO<B, S> reducer) =>
-            (s, a) => action(a).Bind(b => reducer.Invoke(s, b));
-
     }
 
     public Source<CategorySelectOption> GetAllCategories()

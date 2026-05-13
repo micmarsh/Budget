@@ -3,7 +3,6 @@ using CommandLine.Immutable;
 using ConsoleApps;
 using LanguageExt;
 using LanguageExt.Common;
-using LanguageExt.Traits;
 using LiteDB;
 using static LanguageExt.Prelude;
 
@@ -21,10 +20,11 @@ public static class Classify
 
     private static IO<Unit> RunClassify(FileInfo dbString)
     {
+        System.Console.WriteLine($"Looking up stuff in {dbString}");
         var storage = new LiteDb(dbString.Name, ObjectId.NewObjectId);
         return (
             from unclassifed in GetAllUnCategorized(storage).Collect()
-            from _0 in guardnot(unclassifed.IsEmpty, Error.New(EarlyReturnNoUnclassifed, ""))
+            from _0 in guard(unclassifed.Count > 0, Error.New(EarlyReturnNoUnclassifed, ""))
             from categories in storage.GetAllCategories().Collect()
             from _1 in UserClassification.classifyAll(categories, unclassifed).RunIO(CreateRT(storage))
             select unit
