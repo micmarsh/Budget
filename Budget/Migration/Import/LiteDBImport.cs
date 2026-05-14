@@ -5,9 +5,9 @@ using LiteDB;
 
 namespace Budget.Migration.Import;
 
-public class LiteDBImport(string DbFilePath) : IBulkImport
+public class LiteDBImport(FileInfo DbFilePath) : IBulkImport
 {
-    private LiteDatabase db = new (DbFilePath);
+    private LiteDatabase db = new (DbFilePath.FullName);
     
     static LiteDBImport() => RegisterSerializers.Register();
     
@@ -17,6 +17,7 @@ public class LiteDBImport(string DbFilePath) : IBulkImport
     public IO<Unit> WriteAll(Seq<FlatClassification> items) => IO.lift(() =>
     {
         var coll = db.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
+        System.Console.WriteLine($"State of db before import: {coll.Count()} documents");
         var classificationDocs = items
             .GroupBy(line => line.DbId)
             .Select(g => g.Count() == 1 ? getSingle(g.First()) : getSubclassifications(g.AsEnumerable()))

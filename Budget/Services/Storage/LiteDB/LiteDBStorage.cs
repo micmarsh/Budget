@@ -10,9 +10,9 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
     private const string AutoClassificationsCollectionName = "AutoClassifications";
     private readonly LiteDatabase conn;
 
-    public LiteDb(string connectionString, Func<ObjectId> newObjectId)
+    public LiteDb(FileInfo connectionString, Func<ObjectId> newObjectId)
     {
-        conn = new LiteDatabase(connectionString);
+        conn = new LiteDatabase(connectionString.FullName);
         Initialize();
     }
 
@@ -92,9 +92,9 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             .Where(c => c.Record.LineItem.Date >= start)
             .Where(c => c.Record.LineItem.Date <= end)
             .ToEnumerable();
-        System.Console.WriteLine($"Have docs in db? { conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Query()
+        System.Console.WriteLine($"State of db before looking up {start} to {end} { conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Query()
             .Where(c => c.Record.LineItem.Date >= start)
-            .Where(c => c.Record.LineItem.Date <= end).Count()} all docs? {conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Find(_ => true).Count()} ");
+            .Where(c => c.Record.LineItem.Date <= end).Count()} all docs? {conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Find(_ => true).Count()} docs");
         return Source.lift(cursor)
          //   .Transform(new ActionTransducer<ClassificationDoc>(doc => Prompt.logIO($"Found a doc: {doc}")))
             .Transform(new ActionTransducer<ClassificationDoc>(doc => 

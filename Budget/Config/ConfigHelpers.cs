@@ -5,16 +5,15 @@ using static LanguageExt.Json<LanguageExt.IO>;
 
 namespace Budget.Config;
 
-public static class ConfigDefaults
+public static class ConfigHelpers
 {
     public const string DataFileName = "budget.json";
-    public const string DatabaseFileName = "BudgetLiteDb.db";
     private static readonly string ApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-
     public static readonly string FilePath = Path.Join(ApplicationData, DataFileName);
-    public static readonly string DatabasePath = Path.Join(ApplicationData, DatabaseFileName);
-
-    public static readonly ConfigData ConfigData = new(DatabasePath, None);
+    
+    public const string DefaultDbName = "BudgetLiteDb.db";
+    public static readonly string DefaultDbPath = Path.Join(ApplicationData, DefaultDbName);
+    public static readonly ConfigData DefaultConfigData = new(DefaultDbPath, None);
 
     public static readonly IO<ConfigData> readConfig = IO
         .lift(() => File.ReadAllText(FilePath))
@@ -26,8 +25,8 @@ public static class ConfigDefaults
             {
                 System.Console.WriteLine(
                     $"Error reading or parsing config file {FilePath}: '{e.Message}'{Environment.NewLine}" +
-                    $"Using default config {ConfigData} instead, data may not be read or saved as expected");
-                return ConfigData;
+                    $"Using default config {DefaultConfigData} instead, data may not be read or saved as expected");
+                return DefaultConfigData;
             }));
 
     private static readonly Atom<Option<ConfigData>> _cachedConfigData = Atom<Option<ConfigData>>(None);

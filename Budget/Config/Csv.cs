@@ -1,5 +1,5 @@
 using LanguageExt;
-using static Budget.Config.ConfigDefaults;
+using static Budget.Config.ConfigHelpers;
 using static LanguageExt.Prelude;
 
 namespace Budget.Config;

@@ -23,5 +23,5 @@ public static class Shared
     };
 
     public static IO<ConfigData> maybeSetDbPath(bool shouldSetDb, FileInfo dbString) =>
-        shouldSetDb ? Database.setDbFilePath(dbString) : ConfigDefaults.readConfig;
+        shouldSetDb ? Database.setDbFilePath(dbString) : ConfigHelpers.readConfig;
 }

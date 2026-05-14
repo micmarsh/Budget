@@ -82,7 +82,7 @@ public static class FileImport
     private static IO<Unit> RunImport(FileInfo file, FileInfo dbString, string descF, string amountF, string dateF,
         string backupF)
         => from csvResults in BankCsv.parseBankCsv(file, descF, amountF, dateF, backupF)
-            let importer = new LiteDBImport(dbString.Name)
+            let importer = new LiteDBImport(dbString)
             from _ in importer.WriteAll(LineItemsToImportable(csvResults.LineItems))
             from _1 in CleanCommand.Run(dbString, csvResults.MinDate, csvResults.MaxDate)
            select unit;
@@ -95,7 +95,7 @@ public static class FileImport
     
     private static IO<Unit> maybeSetConfig(bool setDb, bool setCsv, FileInfo dbString, string descF, string amountF, string dateF, string backupF) =>
         from configData in Shared.maybeSetDbPath(setDb, dbString)
-        from _1 in ConfigDefaults.setConfig(configData with
+        from _1 in Config.ConfigHelpers.setConfig(configData with
         {
             Csv = setCsv ? new CsvConfigData(descF, amountF, dateF, backupF) : configData.Csv
         })

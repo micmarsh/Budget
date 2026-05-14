@@ -9,12 +9,12 @@ public class CsvImport : IBulkImport
 {
     private readonly string _filePath;
 
-    public CsvImport(string filePath)
+    public CsvImport(FileInfo filePath)
     {
-        _filePath = filePath;
+        _filePath = filePath.FullName;
         stream = new Lazy<StreamWriter>(() =>
         {
-            var value = new StreamWriter(filePath);
+            var value = new StreamWriter(filePath.FullName);
             value.WriteLine(FlatClassification.CsvHeader);
             return value;
         });

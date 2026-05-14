@@ -6,8 +6,8 @@ namespace Budget.Migration.Import;
 public static class ImportFactory
 {
     public static readonly HashMap<string, Func<FileInfo, IBulkImport>> Importers = HashMap<string, Func<FileInfo, IBulkImport>>(
-        (".db", file => new LiteDBImport(file.FullName)),
-        ( ".csv", file => new CsvImport(file.FullName))
+        (".db", file => new LiteDBImport(file)),
+        ( ".csv", file => new CsvImport(file))
     );
 
     public static Option<IBulkImport> Create(FileInfo file) =>

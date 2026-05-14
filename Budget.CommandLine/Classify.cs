@@ -21,7 +21,7 @@ public static class Classify
     private static IO<Unit> RunClassify(FileInfo dbString)
     {
         System.Console.WriteLine($"Looking up stuff in {dbString}");
-        var storage = new LiteDb(dbString.Name, ObjectId.NewObjectId);
+        var storage = new LiteDb(dbString, ObjectId.NewObjectId);
         return (
             from unclassifed in GetAllUnCategorized(storage).Collect()
             from _0 in guard(unclassifed.Count > 0, Error.New(EarlyReturnNoUnclassifed, ""))
@@ -29,7 +29,7 @@ public static class Classify
             from _1 in UserClassification.classifyAll(categories, unclassifed).RunIO(CreateRT(storage))
             select unit
         )
-        .Catch(EarlyReturnNoUnclassifed, _ => Prompt.logIO($"Found no unclassified line items in {dbString.Name}")).As()
+        .Catch(EarlyReturnNoUnclassifed, _ => Prompt.logIO($"Found no unclassified line items in {dbString}")).As()
         .Finally(IO.lift(storage.Dispose));
     }
 

@@ -16,7 +16,7 @@ public static class CleanCommand
     
     public static IO<Unit> Run(FileInfo dbString, DateTime startRange, DateTime endRange)
     {
-        var storage = new LiteDb(dbString.Name, ObjectId.NewObjectId);
+        var storage = new LiteDb(dbString, ObjectId.NewObjectId);
         return (
             from groups in lookupAndGroup(startRange, endRange, storage) * (g => g.Filter(cs => cs.Count > 1))
             from _0 in guard(groups.Count > 0, Error.New(EarlyExitNoDuplicates, ""))

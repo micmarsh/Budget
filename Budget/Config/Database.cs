@@ -1,6 +1,6 @@
 namespace Budget.Config;
 using LanguageExt;
-using static ConfigDefaults;
+using static ConfigHelpers;
 
 //todo probably delete this, excessive abstraction at this point?
 public static class Database

@@ -57,7 +57,7 @@ public static class Utilities
     /// <param name="items"></param>
     /// <param name="toDispose"></param>
     /// <typeparam name="A"></typeparam>
-    /// <returns>A Seq to prevent mutliple enumerations</returns>
+    /// <returns>A Seq to prevent multiple enumerations</returns>
     public static Seq<A> DisposeAfter<A>(this IEnumerable<A> items, IDisposable toDispose)
     {
         IEnumerable<A> go()
