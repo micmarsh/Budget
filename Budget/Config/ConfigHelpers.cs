@@ -1,3 +1,4 @@
+using ConsoleApps;
 using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
 using static LanguageExt.Prelude;
@@ -20,14 +21,9 @@ public static class ConfigHelpers
         .Bind(deserialize<ConfigData>);
     
     private static readonly IO<ConfigData> ConfigWithWarningInternal = +readConfig
-        .Catch(e => 
-            IO.lift(() =>
-            {
-                System.Console.WriteLine(
-                    $"Error reading or parsing config file {FilePath}: '{e.Message}'{Environment.NewLine}" +
-                    $"Using default config {DefaultConfigData} instead, data may not be read or saved as expected");
-                return DefaultConfigData;
-            }));
+        .Catch(e => Prompt.logIO($"Error reading or parsing config file {FilePath}: '{e.Message}'{Environment.NewLine}" + 
+                                 $"Using default config {DefaultConfigData} instead, data may not be read or saved as expected")
+            .Map(_ => DefaultConfigData));
 
     private static readonly Atom<Option<ConfigData>> _cachedConfigData = Atom<Option<ConfigData>>(None);
     
