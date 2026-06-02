@@ -62,14 +62,23 @@ public static class CleanCommand
             );
     
     private static string duplicatesMessage(HashMap<LineItem, Seq<QueryResult<ObjectId>>> onlyDuplicates) =>
-        $"Found duplicate entries in db {Environment.NewLine}{string.Join(Environment.NewLine,
+        $"Found duplicate entries in db {Environment.NewLine}{string.Join(Environment.NewLine + Environment.NewLine,
                 onlyDuplicates.AsIterable()
-                    .Map(kv => $"{kv.Value.Count} for {kv.Key.Description}: {kv.Key.Amount:C} on {kv.Key.Date:D}") // template copied from UserClassificaiton.cs, should consolidate?
+                    .OrderBy(kv => kv.Key.Date)
+                    .Select(kv => duplicateInfoLine(kv.Key, kv.Value))
             )}";
 
+    private static string duplicateInfoLine(LineItem lineItem, Seq<QueryResult<ObjectId>> duplicates)
+    {
+        var objects = duplicates.Map(q => q.Record);
+        var unClassified = objects.OfType<UnCategorized>().Count();
+        return $"{objects.Count} for {lineItem.Description}: {lineItem.Amount:C} on {lineItem.Date:D} " + // template copied from UserClassificaiton.cs, should consolidate?
+               $"{Environment.NewLine}({objects.Count - unClassified} classified, {unClassified} un-classified)"; 
+    }
+
     public static readonly string DuplicateActionPrompt = "What do you want to do to resolve the duplicates?" + Environment.NewLine +
-                                                 "    1) Delete unclassified " + Environment.NewLine +
-                                                 "    2) Do nothing (exit)" + Environment.NewLine;
+                                                          "    1) Delete unclassified " + Environment.NewLine +
+                                                          "    2) Do nothing (exit)" + Environment.NewLine;
 
     private const int EarlyExitNoDuplicates = 8987;
 }
