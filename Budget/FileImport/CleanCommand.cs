@@ -18,7 +18,7 @@ public static class CleanCommand
     {
         var storage = new LiteDb(dbString, ObjectId.NewObjectId);
         return (
-            from groups in lookupAndGroup(startRange, endRange, storage) * (g => g.Filter(cs => cs.Count > 1))
+            from groups in lookupAndGroup(startRange, endRange) * (g => g.Filter(cs => cs.Count > 1))
             from _0 in guard(groups.Count > 0, Error.New(EarlyExitNoDuplicates, ""))
             let message = duplicatesMessage(groups)
             from _1 in logCleanPrompt(message)
@@ -55,11 +55,13 @@ public static class CleanCommand
             from _1 in log<RT>($"Deleted {deleted} uncategorized duplicate entries from db, please run 'clean' command again to verify results")
             select unit;
 
-    private static IO<HashMap<LineItem, Seq<QueryResult<ObjectId>>>> lookupAndGroup(DateTime startRange, DateTime endRange, IClassificationQuery<ObjectId> storage) =>
-        storage.GetDateRange(startRange, endRange)
-            .Reduce(HashMap<LineItem, Seq<QueryResult<ObjectId>>>(), (groups, c) =>
-                groups.AddOrUpdate(c.Record.LineItem, cs => cs.Add(c), Seq(c))
-            );
+    private static Eff<CleanRT, HashMap<LineItem, Seq<QueryResult<ObjectId>>>> lookupAndGroup(DateTime startRange, DateTime endRange) =>
+        askE<CleanRT>() >>
+        (rt =>
+            rt.Storage.GetDateRange(startRange, endRange)
+                .Reduce(HashMap<LineItem, Seq<QueryResult<ObjectId>>>(), (groups, c) =>
+                    groups.AddOrUpdate(c.Record.LineItem, cs => cs.Add(c), Seq(c))
+                ));
     
     private static string duplicatesMessage(HashMap<LineItem, Seq<QueryResult<ObjectId>>> onlyDuplicates) =>
         $"Found duplicate entries in db {Environment.NewLine}{string.Join(Environment.NewLine + Environment.NewLine,

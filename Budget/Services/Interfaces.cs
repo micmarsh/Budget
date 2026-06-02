@@ -23,7 +23,7 @@ public interface IHasConsole
 }
 
 //todo rename and re-tool this completely for non-"latest-based" user classification
-public interface IStorage<DbId>
+public interface IStorage<DbId> : IClassificationQuery<DbId>
 {
     IO<Unit> Save(DbId id, Classification classified);
     IO<int> Delete(Seq<DbId> deleteIds);
