@@ -94,12 +94,14 @@ public static class CleanCommand
         var unClassified = objects.OfType<UnCategorized>().Count();
         var categories = objects.Bind(CategorySelectOption.Create).GroupBy(c => c.Category.Value);
         //todo somehow expand line lengths dynamically to avoid negatives in format method?
-        return formattedLine($"{objects.Count} for {lineItem.Description}: {lineItem.Amount:C}", $"{lineItem.Date:D}", 75) +
-               $"{Environment.NewLine}{formatDuplicateCategories(categories)}, {unClassified} un-classified"; 
+        return formattedLine($"{objects.Count} for {lineItem.Description}: {lineItem.Amount:C}", $"{lineItem.Date:D}", 100) +
+               $"{Environment.NewLine}{formatDuplicateCategories(toSeq(categories))}, {unClassified} un-classified"; 
     }
 
-    private static string formatDuplicateCategories(IEnumerable<IGrouping<string, CategorySelectOption>> categories) =>
-        string.Join(", ", categories.Select(g => $"{g.Count()} classified '{g.Key}'"));
+    private static string formatDuplicateCategories(Seq<IGrouping<string, CategorySelectOption>> categories) =>
+        categories.Any() ?
+        string.Join(", ", categories.Select(g => $"{g.Count()} classified '{g.Key}'")) :
+        "0 classified";
 
     private static string formattedLine(string left, string right, int length)
     {
