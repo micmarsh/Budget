@@ -22,7 +22,7 @@ public static class CleanCommand
             from _0 in guard(groups.Count > 0, Error.New(EarlyExitNoDuplicates, ""))
             let message = duplicatesMessage(groups)
             from _1 in logCleanPrompt(message)
-            from selection in readValue<CleanRT, int>(parseBetween1And(2), "Please enter a selection number, 1 or 2")
+            from selection in readValue<CleanRT, int>(parseBetween1And(3), "Please enter a selection number, 1, 2 or 3")
             from _2 in runSelection<CleanRT>(selection, groups)
             select unit
         )
@@ -39,10 +39,28 @@ public static class CleanCommand
         cleanUpSelection switch
         {
             1 => deleteUnCategorized<RT>(duplicateGroups.Values.ToSeq().Flatten()),
-            2 => log<RT>("Exiting without cleaning database"),
+            2 => keepOneCategorized<RT>(duplicateGroups),
+            3 => log<RT>("Exiting without cleaning database"),
             _ => throw new ArgumentOutOfRangeException(nameof(cleanUpSelection), cleanUpSelection, null)
         };
 
+    private static Eff<RT, Unit> keepOneCategorized<RT>(HashMap<LineItem, Seq<QueryResult<ObjectId>>> duplicateGroups)
+        where RT : IHasStorage<ObjectId>, IHasConsole
+    {
+        var deleteIds = duplicateGroups.Values
+            .Bind(g => g.AsIterable().Skip(1))
+            .Choose(r => r.Record switch
+            {
+                Categorized or SubClassifications => Some(r.Id),
+                _ => None
+            });
+        return 
+            from rt in askE<RT>()
+            from deleted in rt.Storage.Delete(deleteIds.ToSeq())
+            from _1 in log<RT>($"Deleted {deleted} categorized duplicate entries from db, please run 'clean' command again to verify results")
+            select unit;
+    }
+    
     private static Eff<RT, Unit> deleteUnCategorized<RT>(Seq<QueryResult<ObjectId>> duplicateGroupsValues)
         where RT : IHasStorage<ObjectId>, IHasConsole =>
             from rt in askE<RT>()
@@ -64,7 +82,7 @@ public static class CleanCommand
                 ));
     
     private static string duplicatesMessage(HashMap<LineItem, Seq<QueryResult<ObjectId>>> onlyDuplicates) =>
-        $"Found duplicate entries in db {Environment.NewLine}{string.Join(Environment.NewLine + Environment.NewLine,
+        $"Found {onlyDuplicates.Count} sets of duplicate entries in db {Environment.NewLine}{string.Join(Environment.NewLine + Environment.NewLine,
                 onlyDuplicates.AsIterable()
                     .OrderBy(kv => kv.Key.Date)
                     .Select(kv => duplicateInfoLine(kv.Key, kv.Value))
@@ -74,13 +92,25 @@ public static class CleanCommand
     {
         var objects = duplicates.Map(q => q.Record);
         var unClassified = objects.OfType<UnCategorized>().Count();
-        return $"{objects.Count} for {lineItem.Description}: {lineItem.Amount:C} on {lineItem.Date:D} " + // template copied from UserClassificaiton.cs, should consolidate?
-               $"{Environment.NewLine}({objects.Count - unClassified} classified, {unClassified} un-classified)"; 
+        var categories = objects.Bind(CategorySelectOption.Create).GroupBy(c => c.Category.Value);
+        //todo somehow expand line lengths dynamically to avoid negatives in format method?
+        return formattedLine($"{objects.Count} for {lineItem.Description}: {lineItem.Amount:C}", $"{lineItem.Date:D}", 75) +
+               $"{Environment.NewLine}{formatDuplicateCategories(categories)}, {unClassified} un-classified"; 
     }
 
+    private static string formatDuplicateCategories(IEnumerable<IGrouping<string, CategorySelectOption>> categories) =>
+        string.Join(", ", categories.Select(g => $"{g.Count()} classified '{g.Key}'"));
+
+    private static string formattedLine(string left, string right, int length)
+    {
+        var spaces = length - left.Length - right.Length;
+        return left + string.Join("", Enumerable.Repeat(' ', spaces)) + right;
+    }
+    
     public static readonly string DuplicateActionPrompt = "What do you want to do to resolve the duplicates?" + Environment.NewLine +
                                                           "    1) Delete unclassified " + Environment.NewLine +
-                                                          "    2) Do nothing (exit)" + Environment.NewLine;
+                                                          "    2) Keep one classified in each category per line item " + Environment.NewLine +
+                                                          "    3) Do nothing (exit)" + Environment.NewLine;
 
     private const int EarlyExitNoDuplicates = 8987;
 }
