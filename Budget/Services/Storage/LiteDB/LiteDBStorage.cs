@@ -92,9 +92,6 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
             .Where(c => c.Record.LineItem.Date >= start)
             .Where(c => c.Record.LineItem.Date <= end)
             .ToEnumerable();
-        System.Console.WriteLine($"State of db before looking up {start} to {end} { conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Query()
-            .Where(c => c.Record.LineItem.Date >= start)
-            .Where(c => c.Record.LineItem.Date <= end).Count()} all docs? {conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc)).Find(_ => true).Count()} docs");
         return Source.lift(cursor)
          //   .Transform(new ActionTransducer<ClassificationDoc>(doc => Prompt.logIO($"Found a doc: {doc}")))
             .Transform(new ActionTransducer<ClassificationDoc>(doc => 

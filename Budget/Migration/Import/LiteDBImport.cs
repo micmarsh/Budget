@@ -17,7 +17,6 @@ public class LiteDBImport(FileInfo DbFilePath) : IBulkImport
     public IO<Unit> WriteAll(Seq<FlatClassification> items) => IO.lift(() =>
     {
         var coll = db.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-        System.Console.WriteLine($"State of db before import: {coll.Count()} documents");
         var classificationDocs = items
             .GroupBy(line => line.DbId)
             .Select(g => g.Count() == 1 ? getSingle(g.First()) : getSubclassifications(g.AsEnumerable()))
