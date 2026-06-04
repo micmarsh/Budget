@@ -1,5 +1,6 @@
 using ConsoleApps;
 using LanguageExt;
+using LanguageExt.Pretty;
 using LiteDB;
 using static LanguageExt.Prelude;
 
@@ -33,26 +34,30 @@ public class LiteDb : IStorage<ObjectId>, IAutoClassifier, IClassificationQuery<
         AutoClassifyCache.Swap(_ => saved);
     }
 
-    public IO<Unit> Save(ObjectId objectId, Classification classified) =>
+    //todo just make this an extension method on the interface?
+    public IO<Unit> Save(ObjectId objectId, Classification classified) => Save([(objectId, classified)]);
+
+    public IO<Unit> Save(Seq<(ObjectId Id, Classification Classified)> many) =>
         IO.lift(() =>
         {
             var now = DateTime.Now; // todo inject into constructor?
 
             var catsColl = conn.GetCollection<CategorySelectOption>(nameof(CategorySelectOption));
-            var categoryOptions = CategorySelectOption.Create(classified);
+            var categoryOptions = many.Bind(p => CategorySelectOption.Create(p.Classified));
             catsColl.Upsert(categoryOptions);
 
             var classifiedHistoryEntries = categoryOptions.Map(c => (History)new Classified(c.Category, now));
 
             var coll = conn.GetCollection<ClassificationDoc>(nameof(ClassificationDoc));
-            var existing = DocLookupCache.Value.Find(objectId);
             // should just be Update but Upsert makes existing tests (5/12/2026) not break
-            coll.Upsert(new ClassificationDoc(
-                objectId, 
-                classified,
-                existing.Map(d => d.History).IfNone(Empty)
+            var updatedDocs = many.Map(p => new ClassificationDoc(
+                p.Id,
+                p.Classified,
+                DocLookupCache.Value.Find(p.Id).Map(d => d.History).IfNone(Empty)
                     .Concat(classifiedHistoryEntries)
-                ));
+            ));
+            coll.Upsert(updatedDocs);
+            DocLookupCache.Swap(cache => cache.AddOrUpdateRange(updatedDocs.Map(d => (d.Id, d))));
 
             return unit;
         });

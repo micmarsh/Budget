@@ -26,6 +26,7 @@ public interface IHasConsole
 public interface IStorage<DbId> : IClassificationQuery<DbId>
 {
     IO<Unit> Save(DbId id, Classification classified);
+    IO<Unit> Save(Seq<(DbId Id, Classification Classified)> many);
     IO<int> Delete(Seq<DbId> deleteIds);
 }
 

@@ -88,7 +88,6 @@ public static class UserClassification
         from result in autoCategory.Match(category =>
                 Pure((Classification)new Categorized(category, lineItem)),
             () => from @class in classify
-                        //todo should disable entirely with subcategories because will just auto-set last?
                         from _1 in promptAndSaveAutoCategorized<ClassifyRT>(@class)
                         select @class
         )
