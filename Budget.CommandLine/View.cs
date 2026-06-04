@@ -1,8 +1,10 @@
 using Budget.Migration.Export;
+using Budget.Services.Storage.LiteDB;
 using CommandLine.Immutable;
 using ConsoleApps;
 using LanguageExt;
 using LanguageExt.Common;
+using LiteDB;
 using static CommandLine.Immutable.Parsing;
 using static LanguageExt.Prelude;
 
@@ -41,20 +43,24 @@ public static class View
                 .AddOption(SingleYearOpt)
                 .AddOption(Shared.SetDb)
                 .WithAction((dbString, month, year, shouldSetDb) => 
-                    RunView(dbString.FullName, month, year) >> Shared.maybeSetDbPath(shouldSetDb, dbString) * ignore)
+                    RunView(dbString, (int) month, (int) year) >> Shared.maybeSetDbPath(shouldSetDb, dbString) * ignore)
             );
 
     //todo re-do this to query in-db
-    private static IO<Unit> RunView(string dbString, Month month, uint year) =>
-        bracketIO(IO.lift(() => new LiteDBExport(dbString)),
-            exporter => exporter.ExportClassifications()
-                .Filter(c => c.Date.Month == (int)month && c.Date.Year == (int)year)
+    private static IO<Unit> RunView(FileInfo dbString, int month, int year) =>
+        bracketIO(IO.lift(() => new LiteDb(dbString, ObjectId.NewObjectId)),
+            storage => storage
+                .GetDateRange(new DateTime(year, month, 1), new DateTime(year, month, DateTime.DaysInMonth(year, month)))
                 .Reduce(HashMap<Category, decimal>(), (map, c) =>
-                    c.Category.Match(
-                        category => map.AddOrUpdate(new Category(category), total => total + c.Amount,
-                            c.Amount),
-                        None: () => map))
-                .Bind(map => map.AsIterable().OrderBy(pair => pair.Key.Value) //todo get this (and everything else) in order lol
+                        c.Record switch
+                        {
+                            Categorized(var category, var lineItem) => map.AddOrUpdate(category, lineItem.Amount),
+                            SubClassifications subs => map.AddOrUpdateRange(subs.Children.Map(sub => (sub.Category, sub.Amount))),
+                            UnCategorized => map,
+                            _ => throw Utilities.patternMatchError(c.Record)
+                        }
+                )
+                .Bind(map => map.AsIterable().OrderBy(pair => pair.Value) //todo get this (and everything else) in order lol
                     .AsIterable()
                     .Traverse(pair => Prompt.logIO(Prompt.formattedLine(pair.Key.Value, pair.Value.ToString(), 50))))
                 .Map(ignore),
