@@ -60,4 +60,13 @@ public static class Prompt
     public static IO<Unit> guardNotCancelled(string input) =>
         input.StartsWith("cancel") ? Fail(Error.New(StateCancelledCode, "state cancelled")) : Pure(unit);
 
+    public static string formattedLine(string left, string right, int length)
+    {
+        var spaces = length - left.Length - right.Length;
+        if (spaces < 0)
+        {
+            throw new ArgumentException($"Total line length {length} must be greater than total input string length {left.Length + right.Length}");
+        }
+        return left + string.Join("", Enumerable.Repeat(' ', spaces)) + right;
+    }
 }

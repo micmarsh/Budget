@@ -56,7 +56,7 @@ public static class View
                         None: () => map))
                 .Bind(map => map.AsIterable().OrderBy(pair => pair.Key.Value) //todo get this (and everything else) in order lol
                     .AsIterable()
-                    .Traverse(pair => Prompt.logIO($"{pair.Key.Value}: {pair.Value}")))
+                    .Traverse(pair => Prompt.logIO(Prompt.formattedLine(pair.Key.Value, pair.Value.ToString(), 50))))
                 .Map(ignore),
             exporter => IO.lift(exporter.Dispose)).As();
 }

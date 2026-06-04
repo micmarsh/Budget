@@ -103,12 +103,6 @@ public static class CleanCommand
         string.Join(", ", categories.Select(g => $"{g.Count()} classified '{g.Key}'")) :
         "0 classified";
 
-    private static string formattedLine(string left, string right, int length)
-    {
-        var spaces = length - left.Length - right.Length;
-        return left + string.Join("", Enumerable.Repeat(' ', spaces)) + right;
-    }
-    
     public static readonly string DuplicateActionPrompt = "What do you want to do to resolve the duplicates?" + Environment.NewLine +
                                                           "    1) Delete unclassified " + Environment.NewLine +
                                                           "    2) Keep one classified in each category per line item " + Environment.NewLine +
